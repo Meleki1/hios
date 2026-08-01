@@ -1,19 +1,26 @@
-from abc import ABC
 from __future__ import annotations
+
+from abc import ABC
+
 from hios.contracts.capability import Capability
 from hios.contracts.requests import CapabilityRequest
 from hios.contracts.results import CapabilityResult
-from typing import Any
 
 
 class KnowledgeRequest(CapabilityRequest):
-    
-    observation: str
+    """
+    Request for the Knowledge capability.
+    """
+
+    pass
 
 
 class KnowledgeResult(CapabilityResult):
-   
-    content: dict[str, Any]
+    """
+    Result produced by the Knowledge capability.
+    """
+
+    facts: list[str]
 
 
 class KnowledgeCapability(
@@ -24,7 +31,7 @@ class KnowledgeCapability(
     ABC,
 ):
     """
-    Contract for knowledge providers.
+    Base contract for all knowledge providers.
     """
 
     pass

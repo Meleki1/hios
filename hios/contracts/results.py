@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 from hios.shared.base import HIOSModel
 
 
 class CapabilityResult(HIOSModel):
     """
-    Base result object for every capability.
+    Base result for every capability.
     """
+
+    pass
