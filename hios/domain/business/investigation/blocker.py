@@ -7,15 +7,13 @@ from pydantic import Field
 from hios.shared.value_object import ValueObject
 
 
-class Timestamp(ValueObject):
+class InvestigationBlocker(ValueObject):
     """
-    Creation and modification timestamps.
+    Represents why an investigation cannot continue.
     """
 
-    created_at: datetime = Field(
-        default_factory=lambda: datetime.now(UTC)
-    )
+    reason: str
 
-    updated_at: datetime = Field(
+    requested_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC)
     )

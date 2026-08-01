@@ -12,9 +12,11 @@ dependencies = [
     "pydantic>=2.11",
 ]
 
+
 [dependency-groups]
 dev = [
     "pytest>=8.4",
+    "pytest-asyncio>=1.1",
     "pytest-cov>=6.2",
     "ruff>=0.12",
     "pyright>=1.1",
@@ -44,3 +46,5 @@ pythonVersion = "3.13"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+

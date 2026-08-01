@@ -7,9 +7,9 @@ from pydantic import Field
 from hios.shared.value_object import ValueObject
 
 
-class Timestamp(ValueObject):
+class AuditInfo(ValueObject):
     """
-    Creation and modification timestamps.
+    Audit metadata for an entity.
     """
 
     created_at: datetime = Field(
