@@ -24,11 +24,13 @@ async def test_runner_executes_pipeline():
     runner = PipelineRunner(runtime)
 
     process = Process.start(
-        pipeline=TEST_PIPELINE,
         request=DummyRequest(),
     )
 
-    completed = await runner.run(process)
+    completed = await runner.run(
+        TEST_PIPELINE,
+        process,
+    )
 
     assert completed.status == ProcessStatus.COMPLETED
     assert completed.result.message == "Runtime OK"

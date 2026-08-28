@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: hios-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 2511
+      POSTGRES_DB: hios_dev
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - hios_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  hios_postgres_data:

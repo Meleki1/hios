@@ -7,3 +7,4 @@ class CapabilityType(str, Enum):
     DECISION = "decision"
     EXECUTION = "execution"
     LEARNING = "learning"
+    PEST_CONTROL = "pest_control"

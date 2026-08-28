@@ -1,0 +1,26 @@
+id: severe-rodent
+
+name: Severe Rodent Infestation
+
+description: Evidence indicating a high-confidence rodent infestation.
+
+condition:
+  operator: all
+  operands:
+    - droppings
+    - operator: any
+      operands:
+        - scratching
+        - odor
+
+facts:
+  - High confidence infestation
+
+score: 1.0
+priority: 100
+enabled: true
+
+tags:
+  - rodents
+  - infestation
+  - severe

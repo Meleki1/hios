@@ -3,18 +3,21 @@ from __future__ import annotations
 from hios.runtime.hios import HIOS
 from hios.runtime.registry import CapabilityRegistry
 from hios.runtime.runner import PipelineRunner
-from hios.runtime.runtime import Runtime
-from hios.runtime.types import CapabilityType
-
+from hios.runtime.runtime import Runtime 
+from hios.kernel.container import ServiceContainer
 
 class HIOSBuilder:
 
-    def __init__(self) -> None:
+    def __init__(self):
+
+        self._container = ServiceContainer()
         self._registry = CapabilityRegistry()
+        self._pipeline = None
+
 
     def register(
         self,
-        capability: CapabilityType,
+        capability,
         implementation,
     ) -> "HIOSBuilder":
 
@@ -25,14 +28,35 @@ class HIOSBuilder:
 
         return self
 
+    def pipeline(
+        self,
+        pipeline,
+    ) -> "HIOSBuilder":
+
+        self._pipeline = pipeline
+
+        return self
+
+    def container(
+        self,
+        container: ServiceContainer,
+    ) -> "HIOSBuilder":
+
+        self._container = container
+
+        return self
+
+
     def build(self) -> HIOS:
 
-        runtime = Runtime(
-            registry=self._registry,
-        )
+        if self._pipeline is None:
+                raise ValueError("A pipeline must be configured before building HIOS.")
 
-        runner = PipelineRunner(
-            runtime=runtime,
-        )
+        runtime = Runtime(self._registry)
 
-        return HIOS(runner)
+        runner = PipelineRunner(runtime)
+
+        return HIOS(
+            runner=runner,
+            pipeline=self._pipeline,
+        )

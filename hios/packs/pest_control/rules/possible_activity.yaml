@@ -1,0 +1,24 @@
+id: possible-rodent-activity
+
+name: Possible Rodent Activity
+
+description: Evidence suggesting possible rodent activity.
+
+condition:
+  operator: any
+  operands:
+    - scratching
+    - odor
+    - possible rodent evidence
+
+facts:
+  - Possible rodent activity
+
+score: 0.7
+priority: 50
+enabled: true
+
+tags:
+  - rodents
+  - possible-activity
+

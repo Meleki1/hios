@@ -1,19 +1,23 @@
-from abc import ABC
 from __future__ import annotations
+from abc import ABC
 from hios.contracts.capability import Capability
 from hios.contracts.requests import CapabilityRequest
 from hios.contracts.results import CapabilityResult
 from typing import Any
+from hios.shared.base import HIOSModel
+
+
+class InputData(HIOSModel):
+    content: dict[str, Any]
 
 
 class KnowledgeRequest(CapabilityRequest):
-    
     observation: str
 
 
 class KnowledgeResult(CapabilityResult):
    
-    content: dict[str, Any]
+    facts: list[str]
 
 
 class KnowledgeCapability(
@@ -23,8 +27,6 @@ class KnowledgeCapability(
     ],
     ABC,
 ):
-    """
-    Contract for knowledge providers.
-    """
+ 
 
     pass

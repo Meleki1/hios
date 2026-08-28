@@ -1,19 +1,15 @@
 from tests.runtime.conftest import DummyRequest, DummyResult
 from hios.contracts.capability import Capability
+from hios.runtime.context import RuntimeContext
 
-class DummyCapability(
-    Capability[
-        DummyRequest,
-        DummyResult,
-    ]
-):
 
-    async def execute(
+class DummyCapability(Capability[DummyRequest, DummyResult]):
+
+    async def reason(
         self,
-        request,
-        context,
-    ):
-        return DummyResult(
-            message="Runtime OK"
-        )
+        request: DummyRequest,
+        context: RuntimeContext,
+    ) -> DummyResult:
+
+        return DummyResult()
 
