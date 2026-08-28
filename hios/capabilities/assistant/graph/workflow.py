@@ -16,6 +16,8 @@ from hios.capabilities.assistant.graph.nodes import (
 from hios.capabilities.assistant.response.assistant_action_response_builder import (
     AssistantActionResponseBuilder,
 )
+from hios.capabilities.assistant.services.response_generation import AssistantResponseGenerationService
+from hios.capabilities.assistant.services.interaction_understanding import AssistantInteractionUnderstandingService
 
 
 
@@ -27,6 +29,10 @@ def build_home_assistant_graph(
     router: InteractionRouter,
     hios,
     intelligence_graph,
+    response_generation_service,
+    interaction_understanding_service: (
+        AssistantInteractionUnderstandingService
+    ),
     maintenance_intelligence=None,
     outreach=None,
     outreach_policy=None,
@@ -38,6 +44,10 @@ def build_home_assistant_graph(
         router=router,
         hios=hios,
         intelligence_graph=intelligence_graph,
+        response_generation_service=response_generation_service,
+        interaction_understanding_service=(
+            interaction_understanding_service
+        ),
         maintenance_intelligence=maintenance_intelligence,
         outreach=outreach,
         outreach_policy=outreach_policy,

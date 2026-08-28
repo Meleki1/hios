@@ -61,3 +61,24 @@ def test_router_handles_empty_message():
         router.route("")
         == AssistantDomain.CONVERSATION
     )
+
+def test_routes_natural_pest_problem():
+    router = DefaultInteractionRouter()
+
+    assert router.route(
+        "There are tiny creatures coming into my kitchen every night."
+    ) == AssistantDomain.PEST_CONTROL
+
+def test_routes_infestation_problem():
+    router = DefaultInteractionRouter()
+
+    assert router.route(
+        "I think my house has an infestation."
+    ) == AssistantDomain.PEST_CONTROL
+
+def test_routes_natural_home_request():
+    router = DefaultInteractionRouter()
+
+    assert router.route(
+        "I need help with something happening in my house."
+    ) == AssistantDomain.HOME

@@ -10,9 +10,7 @@ from hios.capabilities.intelligence.graph.workflow import (
     build_intelligence_graph,
 )
 import httpx
-
 from hios.core.config import get_settings
-
 from hios.capabilities.environmental.providers.weather_client import (
     WeatherHttpClient,
 )
@@ -136,7 +134,6 @@ from hios.capabilities.maintenance.postgres.maintenance_repository import (
     PostgresMaintenanceRepository,
 )
 from hios.capabilities.memory.service import MemoryService
-
 from hios.capabilities.memory.formation import MemoryFormation
 from hios.capabilities.memory.rule_based_formation import RuleBasedMemoryFormation
 
@@ -161,6 +158,11 @@ from hios.capabilities.home.repositories.postgres_home_property_reference_reposi
 from hios.capabilities.assistant.graph.workflow import (
     build_home_assistant_graph,
 )
+from hios.capabilities.assistant.llm.openai import (
+    OpenAIAssistantLLM,
+)
+from hios.capabilities.assistant.services.interaction_understanding import AssistantInteractionUnderstandingService
+from hios.capabilities.assistant.services.response_generation import AssistantResponseGenerationService
 from hios.runtime.hios import HIOS
 from hios.capabilities.assistant.context.home_context_assembler import HomeContextAssembler
 from hios.db.repositories.memory_repository import MemoryRepository
@@ -442,12 +444,36 @@ def get_home_assistant_graph(
         router=DefaultInteractionRouter(),
         hios=get_hios(),
         intelligence_graph=get_intelligence_graph(session),
+        response_generation_service=(
+            get_assistant_response_generation_service()
+        ),
+        interaction_understanding_service=(
+            get_interaction_understanding_service()
+        ),
     )
-
-
+    
 def get_home_assistant_chat(
     session: AsyncSession = Depends(get_db_session),
 ) -> HomeAssistantChat:
     return HomeAssistantChat(
         graph=get_home_assistant_graph(session),
+    )
+
+def get_assistant_llm() -> OpenAIAssistantLLM:
+    settings = get_settings()
+
+    return OpenAIAssistantLLM(
+        api_key=settings.openai_api_key,
+        model=settings.assistant_model,
+    )
+
+def get_assistant_response_generation_service():
+    return AssistantResponseGenerationService(
+        llm=get_assistant_llm(),
+    )
+
+def get_interaction_understanding_service(
+) -> AssistantInteractionUnderstandingService:
+    return AssistantInteractionUnderstandingService(
+        llm=get_assistant_llm(),
     )

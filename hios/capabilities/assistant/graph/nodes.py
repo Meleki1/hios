@@ -13,6 +13,9 @@ from hios.capabilities.outreach.contracts import OutreachRequest, OutreachResult
 from hios.capabilities.outreach.models import OutreachChannel, OutreachDeliveryStatus
 from hios.runtime.context import RuntimeContext
 from hios.capabilities.outreach.policy import DefaultOutreachPolicy
+from hios.capabilities.assistant.services.response_generation import AssistantResponseGenerationService
+from hios.capabilities.assistant.services.interaction_understanding import AssistantInteractionUnderstandingService
+
 
 
 def create_nodes(
@@ -21,6 +24,10 @@ def create_nodes(
     router: InteractionRouter,
     hios,
     intelligence_graph,
+    response_generation_service: AssistantResponseGenerationService,
+    interaction_understanding_service: (
+        AssistantInteractionUnderstandingService
+    ),
     maintenance_intelligence=None,
     outreach=None,
     outreach_service=None,
@@ -93,7 +100,6 @@ def create_nodes(
     async def build_response(
         state: HomeAssistantState,
     ) -> dict:
-
         maintenance_recommendations = (
             state.get(
                 "maintenance_recommendations",
@@ -136,41 +142,33 @@ def create_nodes(
 
         action_response = action_response_builder.build(
             actions=actions,
-            conversation_id=state.get("conversation_id"),
+            conversation_id=state.get(
+                "conversation_id",
+            ),
         )
 
         if action_response is not None:
-            return {"response": action_response}
+            return {
+                "response": action_response,
+            }
 
-        domain = state.get(
-            "domain",
+        message = await response_generation_service.generate(
+            state=state,
         )
 
-        if domain == AssistantDomain.PEST_CONTROL:
-
-            return {
-                "response": HomeAssistantResponse(
-                    message=(
-                        "I've reviewed the information "
-                        "you provided about the pest issue."
-                    ),
-                    conversation_id=state.get(
-                        "conversation_id",
-                    ),
-                    capability="pest_control",
-                    metadata={},
-                )
-            }
+        domain = state.get("domain")
 
         return {
             "response": HomeAssistantResponse(
-                message=(
-                    "I'm not able to handle that request yet."
-                ),
+                message=message,
                 conversation_id=state.get(
                     "conversation_id",
                 ),
-                capability=None,
+                capability=(
+                    domain.value
+                    if domain is not None
+                    else None
+                ),
                 metadata={},
             )
         }
@@ -178,65 +176,16 @@ def create_nodes(
     async def understand_interaction(
         state: HomeAssistantState,
     ) -> dict:
-
-        message = state["message"].strip().lower()
-
-        explicit_intents: list[str] = []
-
-        if any(
-            phrase in message
-            for phrase in (
-                "how much",
-                "how much does",
-                "how much would",
-                "what does it cost",
-                "what will it cost",
-                "price",
-                "cost",
+        understanding = (
+            await interaction_understanding_service.understand(
+                state=state,
             )
-        ):
-            explicit_intents.append(
-                "asked_for_price"
-            )
-
-        if any(
-            phrase in message
-            for phrase in (
-                "i need treatment",
-                "i need someone to treat",
-                "i want treatment",
-                "i want someone to treat",
-                "book treatment",
-                "get treatment",
-                "professional treatment",
-            )
-        ):
-            explicit_intents.append(
-                "requested_treatment"
-            )
-
-        if any(
-            phrase in message
-            for phrase in (
-                "i have",
-                "i found",
-                "there are",
-                "there is",
-                "i keep seeing",
-                "i'm seeing",
-                "still seeing",
-                "problem with",
-            )
-        ):
-            explicit_intents.append(
-                "reported_active_problem"
-            )
+        )
 
         return {
-            "understanding": InteractionUnderstanding(
-                explicit_intents=explicit_intents,
-            )
+            "understanding": understanding,
         }
+
     async def diagnose_image(
         state: HomeAssistantState,
     ) -> dict:

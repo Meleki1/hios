@@ -12,13 +12,13 @@ class Settings(BaseSettings):
     database_echo: bool = False
 
     openai_api_key: str
-
+    assistant_model: str = "gpt-4o-mini"
     embedding_model: str = (
         "text-embedding-3-small"
     )
 
     image_diagnosis_model: str = (
-        "gpt-4o-mini"
+        "gpt-5"
     )
 
     model_config = SettingsConfigDict(

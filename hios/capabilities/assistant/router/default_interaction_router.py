@@ -52,6 +52,12 @@ class DefaultInteractionRouter(
             "bed bugs",
             "insect",
             "insects",
+            "bug",
+            "bugs",
+            "rodent",
+            "rodents",
+            "infestation",
+            "infested",
         }
 
         if any(
