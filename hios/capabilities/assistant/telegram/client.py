@@ -64,7 +64,7 @@ class TelegramClient:
         return response.json()
 
     async def delete_webhook(self) -> dict[str, Any]:
-
+        
         response = await self._http_client.post(
             f"{self._base_url}/deleteWebhook",
         )

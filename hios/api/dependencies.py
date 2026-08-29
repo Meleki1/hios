@@ -179,6 +179,24 @@ from hios.capabilities.assistant.telegram.client import (
 from hios.capabilities.assistant.telegram.webhook import (
     TelegramWebhookHandler,
 )
+from hios.capabilities.assistant.telegram.provisioning import (
+    TelegramProvisioningService,
+)
+from hios.capabilities.home.services.home_service import (
+    HomeService,
+)
+
+from hios.capabilities.home.repositories.postgres_home_repository import (
+    PostgresHomeRepository,
+)
+
+from hios.capabilities.home.repositories.postgres_home_information_repository import (
+    PostgresHomeInformationRepository,
+)
+
+from hios.capabilities.home.repositories.postgres_home_state_repository import (
+    PostgresHomeStateRepository,
+)
 from hios.db.session import SessionLocal
 
 
@@ -481,11 +499,34 @@ def get_telegram_webhook_handler(
 ) -> TelegramWebhookHandler:
     settings = get_settings()
 
+    home_repository = PostgresHomeRepository(
+        session=session,
+    )
+
+    information_repository = PostgresHomeInformationRepository(
+        session=session,
+    )
+
+    state_repository = PostgresHomeStateRepository(
+        session=session,
+    )
+
+    home_service = HomeService(
+        home_repository=home_repository,
+        information_repository=information_repository,
+        state_repository=state_repository,
+    )
+
+    provisioning_service = TelegramProvisioningService(
+        home_service=home_service,
+        subject_id=settings.telegram_default_subject_id,
+        home_id=settings.telegram_default_home_id,
+    )
+
     return TelegramWebhookHandler(
         assistant=get_home_assistant_chat(session),
         telegram=get_telegram_client(),
-        subject_id=settings.telegram_default_subject_id,
-        home_id=settings.telegram_default_home_id,
+        provisioning_service=provisioning_service,
     )
 
 def get_assistant_llm() -> OpenAIAssistantLLM:

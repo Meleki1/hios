@@ -10,6 +10,9 @@ from hios.capabilities.assistant.telegram.client import (
 from hios.capabilities.assistant.telegram.models import (
     TelegramUpdate,
 )
+from hios.capabilities.assistant.telegram.provisioning import (
+    TelegramProvisioningService,
+)
 
 
 class TelegramWebhookHandler:
@@ -19,19 +22,16 @@ class TelegramWebhookHandler:
         *,
         assistant: HomeAssistantChat,
         telegram: TelegramClient,
-        subject_id: str,
-        home_id: str,
+        provisioning_service: TelegramProvisioningService,
     ) -> None:
         self._assistant = assistant
         self._telegram = telegram
-        self._subject_id = subject_id
-        self._home_id = home_id
+        self._provisioning_service = provisioning_service
 
     async def handle(
         self,
         update: TelegramUpdate,
     ) -> None:
-
         message = update.message
 
         if message is None:
@@ -47,10 +47,14 @@ class TelegramWebhookHandler:
 
         chat_id = message.chat.id
 
+        subject_id, home_id = (
+            await self._provisioning_service.provision()
+        )
+
         result = await self._assistant.send(
             ChatRequest(
-                subject_id=self._subject_id,
-                home_id=self._home_id,
+                subject_id=subject_id,
+                home_id=home_id,
                 message=text,
                 conversation_id=str(chat_id),
             )
