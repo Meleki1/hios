@@ -5,33 +5,32 @@ from hios.capabilities.home.schemas.home_creation import (
     HomeInformationInput,
 )
 from hios.capabilities.home.services.home_service import HomeService
+from hios.capabilities.home.repositories.home_repository import HomeRepository
 
 
 class TelegramProvisioningService:
-    """
-    Temporary provisioning for the Telegram test interface.
-
-    Telegram is currently only an integration/testing channel.
-    """
-
     def __init__(
         self,
         home_service: HomeService,
+        home_repository: HomeRepository,
         *,
         subject_id: str | None = None,
         home_id: str | None = None,
     ) -> None:
         self._home_service = home_service
+        self._home_repository = home_repository
         self._subject_id = subject_id
         self._home_id = home_id
 
     async def provision(self) -> tuple[str, str]:
-        """
-        Return the configured test context or create one.
-        """
 
         if self._subject_id and self._home_id:
-            return self._subject_id, self._home_id
+            home = await self._home_repository.get(
+                self._home_id,
+            )
+
+            if home is not None:
+                return self._subject_id, home.id
 
         subject_id = self._subject_id or str(uuid4())
 

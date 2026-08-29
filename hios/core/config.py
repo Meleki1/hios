@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     telegram_webhook_secret: str
     telegram_default_subject_id: str
     telegram_default_home_id: str
+    hios_bootstrap_secret: str
     
 
 
