@@ -96,7 +96,22 @@ async def run_migrations_online() -> None:
         config.config_ini_section,
     )
 
-    configuration["sqlalchemy.url"] = settings.database_url
+    database_url = settings.database_url
+
+    if database_url.startswith("postgresql://"):
+        database_url = database_url.replace(
+            "postgresql://",
+            "postgresql+asyncpg://",
+            1,
+        )
+    elif database_url.startswith("postgres://"):
+        database_url = database_url.replace(
+            "postgres://",
+            "postgresql+asyncpg://",
+            1,
+        )
+
+    configuration["sqlalchemy.url"] = database_url
 
     connectable = async_engine_from_config(
         configuration,
@@ -105,7 +120,6 @@ async def run_migrations_online() -> None:
     )
 
     async with connectable.connect() as connection:
-
         await connection.run_sync(
             do_run_migrations,
         )
