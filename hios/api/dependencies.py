@@ -519,6 +519,7 @@ def get_telegram_webhook_handler(
 
     provisioning_service = TelegramProvisioningService(
         home_service=home_service,
+        home_repository=home_repository,
         subject_id=settings.telegram_default_subject_id,
         home_id=settings.telegram_default_home_id,
     )
