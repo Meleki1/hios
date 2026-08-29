@@ -173,6 +173,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from hios.packs.pest_control.builder import (
     create as create_pest_control_hios,
 )
+from hios.capabilities.assistant.telegram.client import (
+    TelegramClient,
+)
+from hios.capabilities.assistant.telegram.webhook import (
+    TelegramWebhookHandler,
+)
 from hios.db.session import SessionLocal
 
 
@@ -459,6 +465,29 @@ def get_home_assistant_chat(
         graph=get_home_assistant_graph(session),
     )
 
+def get_telegram_client() -> TelegramClient:
+    settings = get_settings()
+
+    return TelegramClient(
+        bot_token=settings.telegram_bot_token,
+        http_client=get_http_client(),
+    )
+
+
+def get_telegram_webhook_handler(
+    session: AsyncSession = Depends(
+        get_db_session,
+    ),
+) -> TelegramWebhookHandler:
+    settings = get_settings()
+
+    return TelegramWebhookHandler(
+        assistant=get_home_assistant_chat(session),
+        telegram=get_telegram_client(),
+        subject_id=settings.telegram_default_subject_id,
+        home_id=settings.telegram_default_home_id,
+    )
+
 def get_assistant_llm() -> OpenAIAssistantLLM:
     settings = get_settings()
 
@@ -477,3 +506,4 @@ def get_interaction_understanding_service(
     return AssistantInteractionUnderstandingService(
         llm=get_assistant_llm(),
     )
+

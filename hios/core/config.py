@@ -37,6 +37,12 @@ class Settings(BaseSettings):
 
     homedata_api_key: str
 
+    telegram_bot_token: str
+    telegram_webhook_secret: str = "test-webhook-secret"
+    telegram_default_subject_id: str = "test-subject"
+    telegram_default_home_id: str = "test-home"
+    telegram_webhook_secret: str = "test-webhook-secret"
+
 
 @lru_cache
 def get_settings() -> Settings:
