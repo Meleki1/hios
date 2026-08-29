@@ -44,6 +44,9 @@ from hios.capabilities.maintenance.postgres.models.maintenance_record import (
 from hios.db.models.timeline_entry import (
     TimelineEntryRecord,
 )
+from hios.db.models.home_property_reference import (
+    HomePropertyReferenceRecord,
+)
 
 
 
