@@ -12,6 +12,8 @@ condition:
       operands:
         - scratching
         - odor
+        - gnawing
+        - rodent sighting
 
 facts:
   - High confidence infestation

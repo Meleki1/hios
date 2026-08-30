@@ -431,3 +431,4 @@ async def test_single_rule_matches(context, matcher):
     assert result.facts == [
         "Possible rodent activity",
     ]
+

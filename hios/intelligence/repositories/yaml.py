@@ -21,7 +21,7 @@ class YamlRuleRepository(RuleRepository):
 
         rules = []
 
-        for file in self._path.glob("*.yaml"):
+        for file in self._path.rglob("*.yaml"):
 
             with open(file, "r", encoding="utf-8") as stream:
 

@@ -1,0 +1,24 @@
+id: possible-cockroach-activity
+
+name: Possible Cockroach Activity
+
+description: Evidence suggesting possible cockroach activity.
+
+condition:
+  operator: any
+  operands:
+    - cockroach sighting
+    - cockroach droppings
+    - egg case
+    - musty odor
+
+facts:
+  - Possible cockroach activity
+
+score: 0.7
+priority: 50
+enabled: true
+
+tags:
+  - cockroaches
+  - possible-activity
