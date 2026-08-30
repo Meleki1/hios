@@ -65,6 +65,13 @@ from hios.intelligence.evidence.factory import EvidenceFactory
 from hios.intelligence.repositories.yaml import (
     YamlRuleRepository,
 )
+from hios.capabilities.safety.capability import (
+    DefaultSafetyGuidanceCapability,
+)
+
+from hios.capabilities.safety.default import (
+    DefaultSafetyGuidanceGenerator,
+)
 
 
 RULES_PATH = Path(__file__).parent / "rules"
@@ -86,6 +93,10 @@ def register(builder):
         strategy=DefaultUnderstandingStrategy(
             resolver=RuleBasedHypothesisResolver(),
         ),
+    )
+
+    safety = DefaultSafetyGuidanceCapability(
+        generator=DefaultSafetyGuidanceGenerator(),
     )
 
     goals = DefaultGoalCapability(
@@ -120,6 +131,7 @@ def register(builder):
         knowledge=knowledge,
         understanding=understanding,
         goals=goals,
+        safety=safety,
         planning=planning,
         decision=decision,
         execution=execution,

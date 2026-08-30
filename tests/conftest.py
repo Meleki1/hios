@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-
+import pytest
 from sqlalchemy import delete
 from hios.db.models.memory_entry import MemoryRecord
 
@@ -96,3 +96,36 @@ async def session():
         )
 
         await session.commit()
+
+class FakeMemoryStore:
+
+    def __init__(self):
+        self.memories = []
+
+    async def store(
+        self,
+        memories,
+    ):
+        self.memories.extend(memories)
+        return memories
+
+    async def retrieve(
+        self,
+        query,
+        limit=5,
+        threshold=0.70,
+        category=None,
+    ):
+        return [
+            memory
+            for memory in self.memories
+            if (
+                category is None
+                or memory.category == category
+            )
+        ]
+
+
+@pytest.fixture
+def memory_store():
+    return FakeMemoryStore()

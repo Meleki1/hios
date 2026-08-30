@@ -47,15 +47,19 @@ class SpyPlanner(Planner):
     def __init__(self):
 
         self.calls = 0
+        self.investigation_question = None
 
     def create(
         self,
         goals: GoalResult,
+        investigation_question=None,
     ) -> list[Plan]:
 
         self.calls += 1
+        self.investigation_question = investigation_question
 
         return []
+
 
 @pytest.mark.asyncio
 async def test_returns_plan_result(

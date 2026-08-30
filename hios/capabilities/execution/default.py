@@ -39,4 +39,10 @@ class DefaultExecutor(Executor):
         if task_name == "Request Image Evidence":
             return ActionType.IMAGE_REQUEST
 
+        if task_name in {
+            "Ask Investigation Question",
+            "Gather more information",
+        }:
+            return ActionType.USER_INPUT
+
         return ActionType.SYSTEM_OPERATION

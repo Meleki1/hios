@@ -2,9 +2,10 @@ from .resolver import HypothesisResolver
 from .models.hypothesis import Hypothesis
 from .resolver import HypothesisResolver
 from hios.capabilities.understanding.contract import UnderstandingRequest, UnderstandingResult
-
-
+from .models.unknown import Unknown
 from hios.capabilities.knowledge.contract import KnowledgeResult
+from hios.capabilities.understanding.strategy import UnderstandingStrategy
+
 
 
 class RuleBasedHypothesisResolver(HypothesisResolver):
@@ -59,14 +60,13 @@ class RuleBasedHypothesisResolver(HypothesisResolver):
         return hypotheses
 
 
-
-class DefaultUnderstandingStrategy:
-
+class DefaultUnderstandingStrategy(
+    UnderstandingStrategy,
+):
     def __init__(
         self,
         resolver: HypothesisResolver,
     ) -> None:
-
         self._resolver = resolver
 
     def understand(
@@ -78,6 +78,19 @@ class DefaultUnderstandingStrategy:
             request.knowledge,
         )
 
+        unknowns = []
+
+        if not hypotheses:
+            unknowns.append(
+                Unknown(
+                    description=(
+                        "The nature and source of the "
+                        "reported issue are not yet clear."
+                    )
+                )
+            )
+
         return UnderstandingResult(
             hypotheses=hypotheses,
+            unknowns=unknowns,
         )

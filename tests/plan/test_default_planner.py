@@ -5,6 +5,7 @@ from hios.capabilities.goals.models.goal import Goal
 from hios.capabilities.goals.models.priority import GoalPriority
 from hios.capabilities.planning.default_planner import DefaultPlanner
 from hios.capabilities.planning.models.plan import Plan
+from hios.capabilities.memory.investigation.question import InvestigationQuestion
 
 @pytest.fixture
 def planner():
@@ -260,3 +261,79 @@ def test_planner_does_not_request_image_for_normal_goal():
         for plan in plans
         for task in plan.tasks
     )
+
+
+def test_create_investigation_plan_from_investigation_goal(
+    planner,
+):
+    goal = Goal(
+        id="investigate_issue",
+        name="Understand the reported issue",
+        description=(
+            "The nature and source of the "
+            "reported issue are not yet clear."
+        ),
+        priority=GoalPriority.HIGH,
+        source_hypothesis=None,
+    )
+
+    goals = GoalResult(
+        goals=[goal],
+    )
+
+    plans = planner.create(goals)
+
+    assert len(plans) == 1
+
+    plan = plans[0]
+
+    assert plan.goal_id == "investigate_issue"
+    assert plan.name == "Investigate Reported Issue"
+    assert plan.priority == GoalPriority.HIGH
+
+    assert len(plan.tasks) >= 1
+
+def test_create_investigation_plan_uses_selected_question(
+    planner,
+):
+    goals = GoalResult(
+        goals=[
+            Goal(
+                id="investigate_issue",
+                name="Understand the reported issue",
+                description=(
+                    "The nature and source of the reported "
+                    "issue are not yet clear."
+                ),
+                priority=GoalPriority.HIGH,
+            )
+        ]
+    )
+
+    question = InvestigationQuestion(
+        key="issue_location",
+        question="Where exactly are you noticing the issue?",
+        purpose="Determine the affected location.",
+    )
+
+    plans = planner.create(
+        goals,
+        investigation_question=question,
+    )
+
+    assert len(plans) == 1
+
+    plan = plans[0]
+
+    assert plan.goal_id == "investigate_issue"
+    assert plan.name == "Investigate Reported Issue"
+
+    assert len(plan.tasks) == 1
+
+    task = plan.tasks[0]
+
+    assert task.name == "Ask Investigation Question"
+    assert task.description == (
+        "Where exactly are you noticing the issue?"
+    )
+    assert task.required is True

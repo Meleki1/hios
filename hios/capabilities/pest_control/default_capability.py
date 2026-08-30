@@ -1,5 +1,5 @@
 from hios.runtime.context import RuntimeContext
-
+from hios.capabilities.execution.models.action import ActionType
 from hios.capabilities.knowledge.contract import (
     KnowledgeCapability,
     KnowledgeRequest,
@@ -58,7 +58,15 @@ from hios.capabilities.learning.contract import (
 from hios.capabilities.learning.contract import (
     LearningRequest,
 )
-
+from hios.capabilities.safety.contract.request import (
+    SafetyGuidanceRequest,
+)
+from hios.capabilities.safety.capability import (
+    SafetyGuidanceCapability,
+)
+from hios.capabilities.investigation.contract import (
+    InvestigationCapability,
+)
 
 class DefaultPestControlCapability(
     PestControlCapability,
@@ -75,6 +83,8 @@ class DefaultPestControlCapability(
         outcome: OutcomeCapability,
         reflection: ReflectionCapability,
         learning: LearningCapability,
+        safety: SafetyGuidanceCapability,
+        investigation: InvestigationCapability | None = None,
     ):
         self._knowledge = knowledge
         self._understanding = understanding
@@ -85,6 +95,8 @@ class DefaultPestControlCapability(
         self._outcome = outcome
         self._reflection = reflection
         self._learning = learning
+        self._safety = safety
+        self._investigation = investigation
 
     async def reason(
         self,
@@ -156,6 +168,17 @@ class DefaultPestControlCapability(
         print("\n=== UNDERSTANDING RESULT ===")
         print(understanding_result)
 
+
+        safety_guidance_result = await self._safety.execute(
+            SafetyGuidanceRequest(
+                understanding=understanding_result,
+            ),
+            context,
+        )
+
+        print("\n=== SAFETY GUIDANCE RESULT ===")
+        print(safety_guidance_result)
+
         goal_result = await self._goals.execute(
             GoalRequest(
                 understanding=understanding_result,
@@ -163,15 +186,40 @@ class DefaultPestControlCapability(
             context,
         )
 
+        investigation_question = None
+
+        if self._investigation is not None:
+            needs_investigation = any(
+                goal.id == "investigate_issue"
+                for goal in goal_result.goals
+            )
+
+            if needs_investigation:
+                investigation_question = (
+                    await self._investigation.next_question(
+                        investigation_id=observation.id,
+                        hypothesis_name=None,
+                    )
+                )
+
         print("\n=== GOAL RESULT ===")
         print(goal_result)
 
         plan_result = await self._planning.execute(
             PlanRequest(
                 goals=goal_result,
+                investigation_question=investigation_question,
             ),
             context,
         )
+
+        if not plan_result.plans:
+            return PestControlResult(
+                observation=observation,
+                safety_guidance=safety_guidance_result,
+                goals=goal_result,
+                plans=plan_result,
+            )
 
         print("\n=== PLAN RESULT ===")
         print(plan_result)
@@ -189,6 +237,24 @@ class DefaultPestControlCapability(
             ),
             context,
         )
+
+        if any(
+            action.action_type
+            in {
+                ActionType.USER_INPUT,
+                ActionType.IMAGE_REQUEST,
+            }
+            for action in execution_result.execution.actions
+        ):
+            return PestControlResult(
+                observation=observation,
+                safety_guidance=safety_guidance_result,
+                goals=goal_result,
+                plans=plan_result,
+                decision=decision_result,
+                execution=execution_result,
+            )
+            
         print("\n=== DECISION RESULT ===")
         print(decision_result)
 
@@ -241,7 +307,9 @@ class DefaultPestControlCapability(
             outcome=outcome_result,
             reflection=reflection_result,
             learning=learning_result,
+            safety_guidance=safety_guidance_result,
         )
+
     def _build_observation(
         self,
         request: PestControlRequest,

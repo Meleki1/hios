@@ -4,20 +4,55 @@ from hios.capabilities.planning.models.plan import Plan
 from hios.capabilities.planning.models.task import Task
 from hios.capabilities.planning.planner import Planner
 from hios.capabilities.goals.models.goal import Goal
-
+from hios.capabilities.memory.investigation.question import (
+    InvestigationQuestion,
+)
 
 class DefaultPlanner(Planner):
 
     def create(
         self,
         goals: GoalResult,
+        investigation_question: InvestigationQuestion | None = None,
     ) -> list[Plan]:
 
         plans: dict[str, Plan] = {}
 
         for goal in goals.goals:
 
-            if goal.name == "Eliminate infestation":
+            if goal.id == "investigate_issue":
+                if investigation_question is not None:
+                    task = Task(
+                        name="Ask Investigation Question",
+                        description=investigation_question.question,
+                        required=True,
+                    )
+                else:
+                    task = Task(
+                        name="Gather more information",
+                        description=(
+                            "Ask targeted questions to better "
+                            "understand the reported issue."
+                        ),
+                        required=True,
+                    )
+
+                plan = Plan(
+                    goal_id=goal.id,
+                    name="Investigate Reported Issue",
+                    description=(
+                        "Gather additional information to better "
+                        "understand the reported issue."
+                    ),
+                    priority=goal.priority,
+                    tasks=[task],
+                )
+
+                plans.setdefault(
+                    goal.id,
+                    plan,
+                )
+            elif goal.name == "Eliminate infestation":
                 plan = Plan(
                     goal_id=goal.id,
                     name="Rodent Elimination Plan",

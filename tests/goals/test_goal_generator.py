@@ -11,6 +11,7 @@ from hios.capabilities.understanding.contract import (
 from hios.capabilities.understanding.models.hypothesis import (
     Hypothesis,
 )
+from hios.capabilities.understanding.models.unknown import Unknown
 
 
 @pytest.fixture
@@ -237,3 +238,65 @@ def test_generated_goals_are_pending(
     for goal in goals:
 
         assert goal.status.value == "pending"
+
+def test_generate_evidence_goal_from_possible_rodent_activity(
+    generator,
+):
+    understanding = UnderstandingResult(
+        hypotheses=[
+            Hypothesis(
+                id="rodent",
+                name="Possible Rodent Activity",
+                description=(
+                    "Evidence suggests possible rodent activity."
+                ),
+                confidence=0.7,
+                supporting_facts=[
+                    "Possible rodent activity",
+                ],
+                evidence=[],
+            )
+        ]
+    )
+
+    goals = generator.generate(
+        understanding,
+    )
+
+    assert len(goals) == 1
+
+    goal = goals[0]
+
+    assert goal.id == "investigate_rodent_activity"
+    assert goal.name == "Gather visual evidence"
+    assert goal.priority.value == "high"
+    assert goal.source_hypothesis == "rodent"
+    assert goal.status.value == "pending"
+
+def test_generate_investigation_goal_from_unknown(
+    generator,
+):
+    understanding = UnderstandingResult(
+        hypotheses=[],
+        unknowns=[
+            Unknown(
+                description=(
+                    "The nature and source of the "
+                    "reported issue are not yet clear."
+                )
+            )
+        ],
+    )
+
+    goals = generator.generate(
+        understanding,
+    )
+
+    assert len(goals) == 1
+
+    goal = goals[0]
+
+    assert goal.id == "investigate_issue"
+    assert goal.name == "Understand the reported issue"
+    assert goal.priority.value == "high"
+    assert goal.source_hypothesis is None

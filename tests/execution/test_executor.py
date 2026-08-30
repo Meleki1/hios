@@ -257,3 +257,49 @@ def test_normal_task_creates_system_operation_action(
 
     assert action.name == "Inspect property"
     assert action.action_type == ActionType.SYSTEM_OPERATION
+
+def test_ask_investigation_question_creates_user_input_action():
+    executor = DefaultExecutor()
+
+    plan = Plan(
+        goal_id="investigate_issue",
+        name="Investigate Reported Issue",
+        description=(
+            "Gather additional information to better "
+            "understand the reported issue."
+        ),
+        priority=GoalPriority.HIGH,
+        tasks=[
+            Task(
+                name="Ask Investigation Question",
+                description=(
+                    "Have you noticed droppings "
+                    "or other signs around the area?"
+                ),
+                required=True,
+            )
+        ],
+    )
+
+    decision = Decision(
+        plan=plan,
+        rationale="Selected the investigation plan.",
+        score=1.0,
+    )
+
+    execution = Execution(
+        decision=decision,
+    )
+
+    result = executor.execute(execution)
+
+    assert len(result.actions) == 1
+
+    action = result.actions[0]
+
+    assert action.action_type == ActionType.USER_INPUT
+    assert action.name == "Ask Investigation Question"
+    assert action.description == (
+        "Have you noticed droppings "
+        "or other signs around the area?"
+    )

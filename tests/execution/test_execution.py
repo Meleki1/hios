@@ -170,3 +170,22 @@ def test_visual_evidence_flows_to_image_request_response():
     assert response.metadata["requires_user_input"] is True
     assert "photo" in response.message.lower()
 
+def test_gather_more_information_is_user_input():
+    executor = DefaultExecutor()
+
+    assert (
+        executor._get_action_type(
+            "Gather more information",
+        )
+        == ActionType.USER_INPUT
+    )
+
+def test_request_image_evidence_is_image_request():
+    executor = DefaultExecutor()
+
+    assert (
+        executor._get_action_type(
+            "Request Image Evidence",
+        )
+        == ActionType.IMAGE_REQUEST
+    )

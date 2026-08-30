@@ -87,6 +87,13 @@ from hios.capabilities.learning.contract import (
 from hios.capabilities.learning.contract import (
     LearningRequest,
 )
+from hios.capabilities.safety.contract.result import (
+    SafetyGuidanceResult,
+)
+from hios.capabilities.safety.contract.request import (
+    SafetyGuidanceRequest,
+)
+from hios.capabilities.safety.capability import SafetyGuidanceCapability
 from hios.capabilities.image_diagnosis.models.image_diagnosis import ImageDiagnosis
 
 
@@ -108,28 +115,21 @@ class PestControlRequest(
 class PestControlResult(
     CapabilityResult,
 ):
-
     observation: PestObservation | None = None
-
     assessment: PestAssessment | None = None
-
+    safety_guidance: SafetyGuidanceResult | None = None
     goals: GoalResult | None = None
-
     plans: PlanResult | None = None
-
     decision: DecisionResult | None = None
-
     execution: ExecutionResult | None = None
-
     outcome: OutcomeResult | None = None
-
     reflection: ReflectionResult | None = None
-
     learning: LearningResult | None = None
-
     recommendations: list[PestRecommendation] = Field(
         default_factory=list,
     )
+
+
 
 
 class PestControlCapability(
@@ -158,6 +158,7 @@ class DefaultPestControlCapability(
         outcome: OutcomeCapability,
         reflection: ReflectionCapability,
         learning: LearningCapability,
+        safety: SafetyGuidanceCapability,
     ):
         self._knowledge = knowledge
         self._understanding = understanding
@@ -168,6 +169,7 @@ class DefaultPestControlCapability(
         self._outcome = outcome
         self._reflection = reflection
         self._learning = learning
+        self._safety = safety
 
     async def reason(
         self,
@@ -228,6 +230,16 @@ class DefaultPestControlCapability(
             )
         )
 
+        safety_guidance_result = await self._safety.execute(
+            SafetyGuidanceRequest(
+                understanding=understanding_result,
+            ),
+            context,
+        )
+
+        print("\n=== SAFETY GUIDANCE RESULT ===")
+        print(safety_guidance_result)
+
         goal_result = await self._goals.execute(
             GoalRequest(
                 understanding=understanding_result,
@@ -241,6 +253,15 @@ class DefaultPestControlCapability(
             ),
             context,
         )
+
+        if not plan_result.plans:
+            return PestControlResult(
+                knowledge=knowledge_result,
+                understanding=understanding_result,
+                safety_guidance=safety_guidance_result,
+                goals=goal_result,
+                plans=plan_result,
+            )
 
         decision_result = await self._decision.execute(
             DecisionRequest(

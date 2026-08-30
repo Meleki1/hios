@@ -4,6 +4,26 @@ from hios.capabilities.knowledge.contract import (
     KnowledgeRequest,
     KnowledgeResult,
 )
+from hios.capabilities.memory.investigation.question import (
+    InvestigationQuestion,
+)
+from hios.capabilities.safety.capability import (
+    SafetyGuidanceCapability,
+)
+
+from hios.capabilities.safety.contract.request import (
+    SafetyGuidanceRequest
+)
+from hios.capabilities.safety.contract.result import (
+    SafetyGuidanceResult,
+)
+from hios.capabilities.safety.default import (
+    DefaultSafetyGuidanceGenerator,
+)
+
+from hios.capabilities.safety.capability import (
+    DefaultSafetyGuidanceCapability
+)
 
 from hios.capabilities.knowledge.rule import RuleKnowledgeCapability
 from hios.capabilities.understanding.rule import RuleUnderstandingCapability
@@ -126,7 +146,7 @@ from hios.capabilities.execution.default_capability import (
 from hios.capabilities.execution.default import (
     DefaultExecutor,
 )
-
+from hios.capabilities.execution.models.action import ActionType
 from hios.capabilities.outcome.default_capability import (
     DefaultOutcomeCapability,
 )
@@ -155,10 +175,40 @@ from hios.capabilities.image_diagnosis.models.image_diagnosis import (
 from hios.capabilities.image_diagnosis.models.image_finding import (
     ImageFinding,
 )
+from hios.capabilities.decision.contract import (
+    DecisionRequest,
+)
+from hios.capabilities.decision.capability import (
+    DecisionCapability,
+)
+from hios.capabilities.execution.capability import (
+    ExecutionCapability, ExecutionRequest
+)
+from hios.capabilities.outcome.contract import (
+    OutcomeCapability,
+    OutcomeRequest,
+)
+from hios.capabilities.planning.models.task import Task
 from tests.image_diagnosis.fakes import FakeImageDiagnosisProvider
 from hios.capabilities.image_diagnosis.services.image_diagnosis_service import ImageDiagnosisService
 
+class FakeSafetyGuidanceCapability(
+    SafetyGuidanceCapability,
+):
+    def __init__(
+        self,
+        result: SafetyGuidanceResult,
+    ):
+        self.result = result
+        self.request = None
 
+    async def reason(
+        self,
+        request: SafetyGuidanceRequest,
+        context,
+    ) -> SafetyGuidanceResult:
+        self.request = request
+        return self.result
 
 class FakeLearningCapability:
 
@@ -333,6 +383,109 @@ class FakeUnderstandingCapability:
 
         return self.result
         
+class FakeCapabilityThatShouldNotBeCalled:
+    async def execute(
+        self,
+        request,
+        context,
+    ):
+        raise AssertionError(
+            "This capability should not be called "
+            "when there is no executable plan."
+        )
+
+class FakeDecisionFromPlanCapability(
+    DecisionCapability,
+):
+    def __init__(self):
+        self.request = None
+        self.result = None
+
+    async def reason(
+        self,
+        request: DecisionRequest,
+        context,
+    ) -> DecisionResult:
+        self.request = request
+
+        plan = request.plans.plans[0]
+
+        self.result = DecisionResult(
+            decision=Decision(
+                plan=plan,
+                rationale=(
+                    "Selected the available "
+                    "evidence-gathering plan."
+                ),
+                score=1.0,
+            )
+        )
+
+        return self.result
+
+class FakeExecutionFromDecisionCapability(
+    ExecutionCapability,
+):
+    def __init__(self):
+        self.request = None
+        self.result = None
+
+    async def reason(
+        self,
+        request: ExecutionRequest,
+        context,
+    ) -> ExecutionResult:
+        self.request = request
+
+        self.result = ExecutionResult(
+            execution=Execution(
+                decision=request.decision.decision,
+            )
+        )
+
+        return self.result
+
+class FakeOutcomeFromExecutionCapability(
+    OutcomeCapability,
+):
+    def __init__(self):
+        self.request = None
+        self.result = None
+
+    async def reason(
+        self,
+        request: OutcomeRequest,
+        context,
+    ) -> OutcomeResult:
+        self.request = request
+
+        self.result = OutcomeResult(
+            outcome=Outcome(
+                execution=request.execution.execution,
+                status=OutcomeStatus.SUCCESS,
+            )
+        )
+
+        return self.result
+
+class FakeInvestigationCapability:
+
+    def __init__(self, question):
+        self.question = question
+        self.request = None
+
+    async def next_question(
+        self,
+        *,
+        investigation_id: str,
+        hypothesis_name: str | None = None,
+    ):
+        self.request = {
+            "investigation_id": investigation_id,
+            "hypothesis_name": hypothesis_name,
+        }
+
+        return self.question
 
 @pytest.mark.asyncio
 async def test_pest_control_capability_builds_assessment_from_understanding():
@@ -365,7 +518,13 @@ async def test_pest_control_capability_builds_assessment_from_understanding():
             ]
         )
     )
-
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
     goals = FakeGoalCapability(
         GoalResult(
             goals=[],
@@ -476,6 +635,7 @@ async def test_pest_control_capability_builds_assessment_from_understanding():
         outcome=outcome,
         reflection=reflection,
         learning=learning,
+        safety=safety,
     )
 
     
@@ -567,7 +727,13 @@ async def test_pest_control_capability_generates_goals_from_understanding():
             ]
         )
     )
-
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
     goals = FakeGoalCapability(
         GoalResult(
             goals=[
@@ -686,6 +852,7 @@ async def test_pest_control_capability_generates_goals_from_understanding():
     capability = DefaultPestControlCapability(
         knowledge=knowledge,
         understanding=understanding,
+        safety=safety,
         goals=goals,
         planning=planning,
         decision=decision,
@@ -693,6 +860,7 @@ async def test_pest_control_capability_generates_goals_from_understanding():
         outcome=outcome,
         reflection=reflection,
         learning=learning,
+        
     )
 
     request = PestControlRequest(
@@ -760,7 +928,13 @@ async def test_pest_control_capability_passes_goals_to_planning():
             ]
         )
     )
-
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
     goals = FakeGoalCapability(
         GoalResult(
             goals=[
@@ -878,6 +1052,7 @@ async def test_pest_control_capability_passes_goals_to_planning():
     capability = DefaultPestControlCapability(
         knowledge=knowledge,
         understanding=understanding,
+        safety=safety,
         goals=goals,
         planning=planning,
         decision=decision,
@@ -947,6 +1122,14 @@ async def test_pest_control_capability_passes_plans_to_decision():
                     evidence=[],
                 )
             ]
+        )
+    )
+
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
         )
     )
 
@@ -1070,6 +1253,7 @@ async def test_pest_control_capability_passes_plans_to_decision():
     capability = DefaultPestControlCapability(
         knowledge=knowledge,
         understanding=understanding,
+        safety=safety,
         goals=goals,
         planning=planning,
         decision=decision,
@@ -1144,7 +1328,13 @@ async def test_pest_control_capability_passes_decision_to_execution():
             ]
         )
     )
-
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
     goals = FakeGoalCapability(
         GoalResult(
             goals=[
@@ -1265,6 +1455,7 @@ async def test_pest_control_capability_passes_decision_to_execution():
     capability = DefaultPestControlCapability(
         knowledge=knowledge,
         understanding=understanding,
+        safety=safety,
         goals=goals,
         planning=planning,
         decision=decision,
@@ -1332,7 +1523,13 @@ async def test_pest_control_capability_passes_execution_to_outcome():
             ]
         )
     )
-
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
     goals = FakeGoalCapability(
         GoalResult(
             goals=[
@@ -1452,6 +1649,7 @@ async def test_pest_control_capability_passes_execution_to_outcome():
     capability = DefaultPestControlCapability(
         knowledge=knowledge,
         understanding=understanding,
+        safety=safety,
         goals=goals,
         planning=planning,
         decision=decision,
@@ -1524,7 +1722,13 @@ async def test_pest_control_capability_passes_outcome_to_reflection():
             ]
         )
     )
-
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
     goals = FakeGoalCapability(
         GoalResult(
             goals=[
@@ -1643,6 +1847,7 @@ async def test_pest_control_capability_passes_outcome_to_reflection():
     capability = DefaultPestControlCapability(
         knowledge=knowledge,
         understanding=understanding,
+        safety=safety,
         goals=goals,
         planning=planning,
         decision=decision,
@@ -1715,7 +1920,13 @@ async def test_pest_control_capability_passes_reflection_to_learning():
             ]
         )
     )
-
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
     goals = FakeGoalCapability(
         GoalResult(
             goals=[
@@ -1833,6 +2044,7 @@ async def test_pest_control_capability_passes_reflection_to_learning():
     capability = DefaultPestControlCapability(
         knowledge=knowledge,
         understanding=understanding,
+        safety=safety,
         goals=goals,
         planning=planning,
         decision=decision,
@@ -1930,10 +2142,18 @@ async def test_pest_control_capability_uses_real_knowledge():
     )
 
     understanding = RuleUnderstandingCapability(
-    strategy=DefaultUnderstandingStrategy(
-        resolver=RuleBasedHypothesisResolver(),
+        strategy=DefaultUnderstandingStrategy(
+            resolver=RuleBasedHypothesisResolver(),
+        )
     )
-)
+
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
 
     # Keep the rest of the pipeline fake.
     goals = DefaultGoalCapability(
@@ -1968,6 +2188,7 @@ async def test_pest_control_capability_uses_real_knowledge():
     capability = DefaultPestControlCapability(
         knowledge=knowledge,
         understanding=understanding,
+        safety=safety,
         goals=goals,
         planning=planning,
         decision=decision,
@@ -2200,6 +2421,14 @@ async def test_pest_control_capability_uses_image_diagnosis():
         ),
     )
 
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
+
     goals = DefaultGoalCapability(
         generator=DefaultGoalGenerator(),
     )
@@ -2231,6 +2460,7 @@ async def test_pest_control_capability_uses_image_diagnosis():
     capability = DefaultPestControlCapability(
         knowledge=knowledge,
         understanding=understanding,
+        safety=safety,
         goals=goals,
         planning=planning,
         decision=decision,
@@ -2296,6 +2526,14 @@ async def test_image_diagnosis_evidence_reaches_understanding():
         ),
     )
 
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
+
     goals = DefaultGoalCapability(
         generator=DefaultGoalGenerator(),
     )
@@ -2327,6 +2565,7 @@ async def test_image_diagnosis_evidence_reaches_understanding():
     capability = DefaultPestControlCapability(
         knowledge=knowledge,
         understanding=understanding,
+        safety=safety,
         goals=goals,
         planning=planning,
         decision=decision,
@@ -2393,6 +2632,14 @@ async def test_pest_control_preserves_multiple_image_findings():
         ),
     )
 
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
+
     goals = DefaultGoalCapability(
         generator=DefaultGoalGenerator(),
     )
@@ -2424,6 +2671,7 @@ async def test_pest_control_preserves_multiple_image_findings():
     capability = DefaultPestControlCapability(
         knowledge=knowledge,
         understanding=understanding,
+        safety=safety,
         goals=goals,
         planning=planning,
         decision=decision,
@@ -2498,6 +2746,14 @@ async def test_image_diagnosis_populates_observation_location():
         ),
     )
 
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
+
     goals = DefaultGoalCapability(
         generator=DefaultGoalGenerator(),
     )
@@ -2529,6 +2785,7 @@ async def test_image_diagnosis_populates_observation_location():
     capability = DefaultPestControlCapability(
         knowledge=knowledge,
         understanding=understanding,
+        safety=safety,
         goals=goals,
         planning=planning,
         decision=decision,
@@ -2592,6 +2849,14 @@ async def test_image_diagnosis_preserves_all_finding_evidence():
         ),
     )
 
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
+
     goals = DefaultGoalCapability(
         generator=DefaultGoalGenerator(),
     )
@@ -2623,6 +2888,7 @@ async def test_image_diagnosis_preserves_all_finding_evidence():
     capability = DefaultPestControlCapability(
         knowledge=knowledge,
         understanding=understanding,
+        safety=safety,
         goals=goals,
         planning=planning,
         decision=decision,
@@ -2697,6 +2963,14 @@ async def test_image_diagnosis_confidence_reaches_pest_assessment():
         ),
     )
 
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
+
     goals = DefaultGoalCapability(
         generator=DefaultGoalGenerator(),
     )
@@ -2728,6 +3002,7 @@ async def test_image_diagnosis_confidence_reaches_pest_assessment():
     capability = DefaultPestControlCapability(
         knowledge=knowledge,
         understanding=understanding,
+        safety=safety,
         goals=goals,
         planning=planning,
         decision=decision,
@@ -2785,6 +3060,14 @@ async def test_image_diagnosis_influences_pest_assessment():
         ),
     )
 
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
+
     goals = DefaultGoalCapability(
         generator=DefaultGoalGenerator(),
     )
@@ -2816,6 +3099,7 @@ async def test_image_diagnosis_influences_pest_assessment():
     capability = DefaultPestControlCapability(
         knowledge=knowledge,
         understanding=understanding,
+        safety=safety,
         goals=goals,
         planning=planning,
         decision=decision,
@@ -2874,6 +3158,14 @@ async def test_empty_image_diagnosis_produces_no_image_evidence():
         ),
     )
 
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
+
     goals = DefaultGoalCapability(
         generator=DefaultGoalGenerator(),
     )
@@ -2905,6 +3197,7 @@ async def test_empty_image_diagnosis_produces_no_image_evidence():
     capability = DefaultPestControlCapability(
         knowledge=knowledge,
         understanding=understanding,
+        safety=safety,
         goals=goals,
         planning=planning,
         decision=decision,
@@ -2958,6 +3251,14 @@ async def test_pest_control_without_image_diagnosis_remains_conversation():
         ),
     )
 
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
+
     goals = DefaultGoalCapability(
         generator=DefaultGoalGenerator(),
     )
@@ -2989,6 +3290,7 @@ async def test_pest_control_without_image_diagnosis_remains_conversation():
     capability = DefaultPestControlCapability(
         knowledge=knowledge,
         understanding=understanding,
+        safety=safety,
         goals=goals,
         planning=planning,
         decision=decision,
@@ -3057,6 +3359,14 @@ async def test_image_evidence_enriches_conversation_observation():
         ),
     )
 
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
+
     goals = DefaultGoalCapability(
         generator=DefaultGoalGenerator(),
     )
@@ -3088,6 +3398,7 @@ async def test_image_evidence_enriches_conversation_observation():
     capability = DefaultPestControlCapability(
         knowledge=knowledge,
         understanding=understanding,
+        safety=safety,
         goals=goals,
         planning=planning,
         decision=decision,
@@ -3209,3 +3520,760 @@ async def test_droppings_and_scratching_produce_high_confidence_infestation():
 
     assert "High confidence infestation" in result.facts
 
+@pytest.mark.asyncio
+async def test_pest_control_returns_safety_and_investigation_plan():
+    # arrange knowledge + understanding...
+
+    repository = YamlRuleRepository(
+        RULES_PATH,
+    )
+
+    knowledge = RuleKnowledgeCapability(
+        repository=repository,
+        evaluator=RuleEvaluator(),
+        evidence_factory=EvidenceFactory(),
+    )
+
+    understanding = RuleUnderstandingCapability(
+        strategy=DefaultUnderstandingStrategy(
+            resolver=RuleBasedHypothesisResolver(),
+        ),
+    )
+
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
+
+    goals = DefaultGoalCapability(
+        generator=DefaultGoalGenerator(),
+    )
+
+    planning = DefaultPlanningCapability(
+        planner=DefaultPlanner(),
+    )
+
+    decision = DefaultDecisionCapability(
+        selector=DefaultDecisionSelector(),
+    )
+
+    execution = DefaultExecutionCapability(
+        executor=DefaultExecutor(),
+    )
+
+    outcome = DefaultOutcomeCapability(
+        evaluator=DefaultOutcomeEvaluator(),
+    )
+
+    reflection = DefaultReflectionCapability(
+        reflector=DefaultReflector(),
+    )
+
+    learning = DefaultLearningCapability(
+        learner=DefaultLearner(),
+    )
+
+
+    capability = DefaultPestControlCapability(
+        knowledge=knowledge,
+        understanding=understanding,
+        safety=safety,
+        goals=goals,
+        planning=planning,
+        decision=decision,
+        execution=execution,
+        outcome=outcome,
+        reflection=reflection,
+        learning=learning,
+    )
+
+    request = PestControlRequest(
+        subject_id="subject-123",
+        home_id="home-123",
+        message=(
+            "I keep seeing signs of rodents "
+            "around my kitchen."
+        ),
+    )
+
+    result = await capability.reason(
+        request=request,
+        context=None,
+    )
+
+    assert safety.request is not None
+
+    assert result.safety_guidance is not None
+    assert result.safety_guidance.guidance == [
+        "Keep the affected area clear.",
+    ]
+
+    assert result.goals is not None
+    assert len(result.goals.goals) == 1
+
+    goal = result.goals.goals[0]
+
+    assert goal.id == "investigate_issue"
+    assert goal.name == "Understand the reported issue"
+
+    assert result.plans is not None
+    assert len(result.plans.plans) == 1
+
+    assert (
+        result.plans.plans[0].goal_id
+        == "investigate_issue"
+    )
+
+    assert (
+        result.plans.plans[0].name
+        == "Investigate Reported Issue"
+    )
+    assert result.execution is not None
+    assert result.execution.execution.actions
+
+    action = result.execution.execution.actions[0]
+
+    assert action.name == "Gather more information"
+    assert action.action_type == ActionType.USER_INPUT
+
+    assert result.outcome is None
+    assert result.reflection is None
+    assert result.learning is None
+
+@pytest.mark.asyncio
+async def test_scratching_produces_safety_and_evidence_plan():
+    repository = YamlRuleRepository(
+        RULES_PATH,
+    )
+
+    knowledge = RuleKnowledgeCapability(
+        repository=repository,
+        evaluator=RuleEvaluator(),
+        evidence_factory=EvidenceFactory(),
+    )
+
+    understanding = RuleUnderstandingCapability(
+        strategy=DefaultUnderstandingStrategy(
+            resolver=RuleBasedHypothesisResolver(),
+        ),
+    )
+
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
+
+    goals = DefaultGoalCapability(
+        generator=DefaultGoalGenerator(),
+    )
+
+    planning = DefaultPlanningCapability(
+        planner=DefaultPlanner(),
+    )
+
+    decision = DefaultDecisionCapability(
+        selector=DefaultDecisionSelector(),
+    )
+
+    execution = DefaultExecutionCapability(
+        executor=DefaultExecutor(),
+    )
+    outcome = FakeCapabilityThatShouldNotBeCalled()
+    reflection = FakeCapabilityThatShouldNotBeCalled()
+    learning = FakeCapabilityThatShouldNotBeCalled()
+
+    capability = DefaultPestControlCapability(
+        knowledge=knowledge,
+        understanding=understanding,
+        safety=safety,
+        goals=goals,
+        planning=planning,
+        decision=decision,
+        execution=execution,
+        outcome=outcome,
+        reflection=reflection,
+        learning=learning,
+    )
+
+    request = PestControlRequest(
+        subject_id="subject-123",
+        home_id="home-123",
+        message="I can hear scratching in my kitchen.",
+    )
+
+    result = await capability.reason(
+        request=request,
+        context=None,
+    )
+
+    assert result.safety_guidance is not None
+    assert result.safety_guidance.guidance == [
+        "Keep the affected area clear.",
+    ]
+
+    assert result.goals is not None
+    assert len(result.goals.goals) == 1
+
+    goal = result.goals.goals[0]
+
+    assert goal.id == "investigate_rodent_activity"
+    assert goal.name == "Gather visual evidence"
+    assert goal.source_hypothesis == "rodent"
+
+    assert result.plans is not None
+    assert len(result.plans.plans) == 1
+
+    plan = result.plans.plans[0]
+
+    assert plan.goal_id == "investigate_rodent_activity"
+    assert plan.name == "Gather Visual Evidence"
+
+    assert len(plan.tasks) == 1
+    assert plan.tasks[0].name == "Request Image Evidence"
+    assert plan.tasks[0].required is True
+    assert result.decision is not None
+    assert result.decision.decision is not None
+
+    assert result.decision.decision.plan.id == plan.id
+
+    assert result.execution is not None
+    assert result.execution.execution is not None
+    assert result.execution.execution.actions
+    assert any(
+        action.action_type == ActionType.IMAGE_REQUEST
+        for action in result.execution.execution.actions
+    )
+
+
+@pytest.mark.asyncio
+async def test_pest_control_turns_unknown_issue_into_investigation_plan():
+    repository = YamlRuleRepository(
+        RULES_PATH,
+    )
+
+    knowledge = RuleKnowledgeCapability(
+        repository=repository,
+        evaluator=RuleEvaluator(),
+        evidence_factory=EvidenceFactory(),
+    )
+
+    understanding = RuleUnderstandingCapability(
+        strategy=DefaultUnderstandingStrategy(
+            resolver=RuleBasedHypothesisResolver(),
+        ),
+    )
+
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
+
+    goals = DefaultGoalCapability(
+        generator=DefaultGoalGenerator(),
+    )
+
+    planning = DefaultPlanningCapability(
+        planner=DefaultPlanner(),
+    )
+
+    investigation_plan = Plan(
+        goal_id="investigate_issue",
+        name="Investigate Reported Issue",
+        description=(
+            "Gather additional information to better "
+            "understand the reported issue."
+        ),
+        priority=GoalPriority.HIGH,
+        tasks=[
+            Task(
+                name="Gather more information",
+                description=(
+                    "Ask targeted questions to better "
+                    "understand the reported issue."
+                ),
+                required=True,
+            )
+        ],
+    )
+
+    decision = FakeDecisionCapability(
+        DecisionResult(
+            decision=Decision(
+                plan=investigation_plan,
+                rationale=(
+                    "Selected the investigation plan."
+                ),
+                score=1.0,
+            )
+        )
+    )
+
+    execution = FakeExecutionCapability(
+        ExecutionResult(
+            execution=Execution(
+                decision=decision.result.decision,
+            )
+        )
+    )
+
+    outcome = FakeOutcomeCapability(
+        OutcomeResult(
+            outcome=Outcome(
+                execution=execution.result.execution,
+                status=OutcomeStatus.SUCCESS,
+            )
+        )
+    )
+
+    reflection = FakeReflectionCapability(
+        ReflectionResult(
+            reflection=Reflection(
+                outcome=outcome.result.outcome,
+                insights=[],
+                summary="Investigation plan selected.",
+                score=1.0,
+            )
+        )
+    )
+
+    learning = FakeLearningCapability(
+        LearningResult(
+            learning=Learning(
+                reflection=reflection.result.reflection,
+                lessons=[],
+                summary="Investigation plan selected.",
+                score=1.0,
+            )
+        )
+    )
+
+    capability = DefaultPestControlCapability(
+        knowledge=knowledge,
+        understanding=understanding,
+        safety=safety,
+        goals=goals,
+        planning=planning,
+        decision=decision,
+        execution=execution,
+        outcome=outcome,
+        reflection=reflection,
+        learning=learning,
+    )
+
+    request = PestControlRequest(
+        subject_id="subject-123",
+        home_id="home-123",
+        message=(
+            "There is something strange happening "
+            "in my kitchen."
+        ),
+    )
+
+    result = await capability.reason(
+        request=request,
+        context=None,
+    )
+
+    assert result.safety_guidance is not None
+
+    assert result.goals is not None
+    assert len(result.goals.goals) == 1
+
+    goal = result.goals.goals[0]
+
+    assert goal.id == "investigate_issue"
+    assert goal.name == "Understand the reported issue"
+    assert goal.priority == GoalPriority.HIGH
+    assert goal.source_hypothesis is None
+
+    assert result.plans is not None
+    assert len(result.plans.plans) == 1
+
+    plan = result.plans.plans[0]
+
+    assert plan.goal_id == "investigate_issue"
+    assert plan.name == "Investigate Reported Issue"
+    assert plan.priority == GoalPriority.HIGH
+
+    assert len(plan.tasks) >= 1
+
+@pytest.mark.asyncio
+async def test_pest_control_does_not_repeat_unchanged_safety_guidance():
+    context = RuntimeContext()
+
+    understanding = UnderstandingResult(
+        hypotheses=[
+            Hypothesis(
+                id="rodent",
+                name="Possible Rodent Activity",
+                description=(
+                    "Evidence suggests possible rodent activity."
+                ),
+                confidence=0.7,
+                supporting_facts=[
+                    "Possible rodent activity",
+                ],
+                evidence=[],
+            )
+        ]
+    )
+
+    safety = DefaultSafetyGuidanceCapability(
+        generator=DefaultSafetyGuidanceGenerator(),
+    )
+
+    request = SafetyGuidanceRequest(
+        understanding=understanding,
+    )
+
+    first = await safety.reason(
+        request=request,
+        context=context,
+    )
+
+    assert first.guidance
+
+    second = await safety.reason(
+        request=request,
+        context=context,
+    )
+
+    assert second.guidance == []
+
+@pytest.mark.asyncio
+async def test_pest_control_returns_new_safety_guidance_when_risk_changes():
+    context = RuntimeContext()
+
+    safety = DefaultSafetyGuidanceCapability(
+        generator=DefaultSafetyGuidanceGenerator(),
+    )
+
+    possible_rodent = UnderstandingResult(
+        hypotheses=[
+            Hypothesis(
+                id="rodent",
+                name="Possible Rodent Activity",
+                description=(
+                    "Evidence suggests possible rodent activity."
+                ),
+                confidence=0.7,
+                supporting_facts=[
+                    "Possible rodent activity",
+                ],
+                evidence=[],
+            )
+        ]
+    )
+
+    first = await safety.reason(
+        request=SafetyGuidanceRequest(
+            understanding=possible_rodent,
+        ),
+        context=context,
+    )
+
+    assert first.guidance == [
+        "Avoid handling suspected rodent droppings or contaminated material with bare hands.",
+        "Keep the affected area clear while the source of the activity is being investigated.",
+    ]
+
+    confirmed_rodent = UnderstandingResult(
+        hypotheses=[
+            Hypothesis(
+                id="rodent-infestation",
+                name="Rodent Infestation",
+                description=(
+                    "Evidence suggests an active rodent infestation."
+                ),
+                confidence=0.9,
+                supporting_facts=[
+                    "Rodent infestation",
+                ],
+                evidence=[],
+            )
+        ]
+    )
+
+    second = await safety.reason(
+        request=SafetyGuidanceRequest(
+            understanding=confirmed_rodent,
+        ),
+        context=context,
+    )
+
+    assert second.guidance == [
+        "Avoid direct contact with rodents or suspected contaminated material.",
+        "Keep children and pets away from areas showing signs of infestation.",
+    ]
+
+@pytest.mark.asyncio
+async def test_pest_control_uses_investigation_for_unknown_issue():
+    investigation = FakeInvestigationCapability(
+        InvestigationQuestion(
+            key="issue_location",
+            question="Where exactly are you noticing the issue?",
+            purpose="Determine the affected location.",
+        )
+    )
+
+    repository = YamlRuleRepository(RULES_PATH)
+
+    knowledge = RuleKnowledgeCapability(
+        repository=repository,
+        evaluator=RuleEvaluator(),
+        evidence_factory=EvidenceFactory(),
+    )
+
+    understanding = RuleUnderstandingCapability(
+        strategy=DefaultUnderstandingStrategy(
+            resolver=RuleBasedHypothesisResolver(),
+        ),
+    )
+
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
+
+    goals = DefaultGoalCapability(
+        generator=DefaultGoalGenerator(),
+    )
+
+    planning = DefaultPlanningCapability(
+        planner=DefaultPlanner(),
+    )
+
+    investigation_plan = Plan(
+        goal_id="investigate_issue",
+        name="Investigate Reported Issue",
+        description=(
+            "Gather additional information to better "
+            "understand the reported issue."
+        ),
+        priority=GoalPriority.HIGH,
+        tasks=[
+            Task(
+                name="Ask Investigation Question",
+                description=(
+                    "Where exactly are you noticing the issue?"
+                ),
+                required=True,
+            )
+        ],
+    )
+
+    decision = DefaultDecisionCapability(
+        selector=DefaultDecisionSelector(),
+    )
+
+    execution = DefaultExecutionCapability(
+        executor=DefaultExecutor(),
+    )
+
+    outcome = FakeCapabilityThatShouldNotBeCalled()
+    reflection = FakeCapabilityThatShouldNotBeCalled()
+    learning = FakeCapabilityThatShouldNotBeCalled()
+
+    capability = DefaultPestControlCapability(
+        knowledge=knowledge,
+        understanding=understanding,
+        safety=safety,
+        investigation=investigation,
+        goals=goals,
+        planning=planning,
+        decision=decision,
+        execution=execution,
+        outcome=outcome,
+        reflection=reflection,
+        learning=learning,
+    )
+
+    request = PestControlRequest(
+        subject_id="subject-123",
+        home_id="home-123",
+        message=(
+            "There is something strange happening "
+            "in my kitchen."
+        ),
+    )
+
+    result = await capability.reason(
+        request=request,
+        context=None,
+    )
+
+    # Investigation was actually consulted.
+    assert investigation.request is not None
+
+    assert investigation.request["investigation_id"] == (
+        result.observation.id
+    )
+
+    # No hypothesis was available.
+    assert investigation.request["hypothesis_name"] is None
+
+    # Safety is still provided.
+    assert result.safety_guidance is not None
+    assert result.safety_guidance.guidance == [
+        "Keep the affected area clear.",
+    ]
+
+    # Generic investigation goal.
+    assert result.goals is not None
+    assert len(result.goals.goals) == 1
+
+    goal = result.goals.goals[0]
+
+    assert goal.id == "investigate_issue"
+    assert goal.name == "Understand the reported issue"
+
+    # Investigation plan.
+    assert result.plans is not None
+    assert len(result.plans.plans) == 1
+
+    plan = result.plans.plans[0]
+
+    assert plan.goal_id == "investigate_issue"
+    assert plan.name == "Investigate Reported Issue"
+
+    assert len(plan.tasks) == 1
+
+    task = plan.tasks[0]
+
+    assert task.name == "Ask Investigation Question"
+    assert task.description == (
+        "Where exactly are you noticing the issue?"
+    )
+    assert task.required is True
+
+    # The system asks for one thing and waits.
+    assert result.execution is not None
+
+    actions = result.execution.execution.actions
+
+    assert len(actions) == 1
+
+    assert actions[0].action_type == ActionType.USER_INPUT
+    assert actions[0].description == (
+        "Where exactly are you noticing the issue?"
+    )
+
+    assert result.outcome is None
+    assert result.reflection is None
+    assert result.learning is None
+
+
+@pytest.mark.asyncio
+async def test_pest_control_uses_specialized_rodent_evidence_plan():
+    investigation = FakeInvestigationCapability(
+        InvestigationQuestion(
+            key="issue_location",
+            question="Where exactly are you noticing the issue?",
+            purpose="Determine the affected location.",
+        )
+    )
+
+    repository = YamlRuleRepository(RULES_PATH)
+
+    knowledge = RuleKnowledgeCapability(
+        repository=repository,
+        evaluator=RuleEvaluator(),
+        evidence_factory=EvidenceFactory(),
+    )
+
+    understanding = RuleUnderstandingCapability(
+        strategy=DefaultUnderstandingStrategy(
+            resolver=RuleBasedHypothesisResolver(),
+        ),
+    )
+
+    safety = FakeSafetyGuidanceCapability(
+        SafetyGuidanceResult(
+            guidance=[
+                "Keep the affected area clear.",
+            ],
+        )
+    )
+
+    goals = DefaultGoalCapability(
+        generator=DefaultGoalGenerator(),
+    )
+
+    planning = DefaultPlanningCapability(
+        planner=DefaultPlanner(),
+    )
+
+    decision = DefaultDecisionCapability(
+        selector=DefaultDecisionSelector(),
+    )
+
+    execution = DefaultExecutionCapability(
+        executor=DefaultExecutor(),
+    )
+
+    outcome = FakeCapabilityThatShouldNotBeCalled()
+    reflection = FakeCapabilityThatShouldNotBeCalled()
+    learning = FakeCapabilityThatShouldNotBeCalled()
+
+    capability = DefaultPestControlCapability(
+        knowledge=knowledge,
+        understanding=understanding,
+        safety=safety,
+        investigation=investigation,
+        goals=goals,
+        planning=planning,
+        decision=decision,
+        execution=execution,
+        outcome=outcome,
+        reflection=reflection,
+        learning=learning,
+    )
+
+    request = PestControlRequest(
+        subject_id="subject-123",
+        home_id="home-123",
+        message="I can hear scratching in my kitchen.",
+    )
+
+    result = await capability.reason(
+        request=request,
+        context=None,
+    )
+
+    assert result.goals is not None
+    assert len(result.goals.goals) == 1
+
+    goal = result.goals.goals[0]
+
+    assert goal.id == "investigate_rodent_activity"
+    assert goal.name == "Gather visual evidence"
+    assert goal.source_hypothesis == "rodent"
+    assert result.plans is not None
+    assert len(result.plans.plans) == 1
+
+    plan = result.plans.plans[0]
+
+    assert plan.goal_id == "investigate_rodent_activity"
+    assert plan.name == "Gather Visual Evidence"
+
+    assert len(plan.tasks) == 1
+    assert plan.tasks[0].name == "Request Image Evidence"
+    assert result.execution is not None
+
+    actions = result.execution.execution.actions
+
+    assert len(actions) == 1
+
+    assert actions[0].action_type == ActionType.IMAGE_REQUEST

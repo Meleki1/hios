@@ -27,6 +27,7 @@ class DefaultPlanningCapability(
 
         plans = self._planner.create(
             request.goals,
+            investigation_question=request.investigation_question,
         )
 
         return PlanResult(
