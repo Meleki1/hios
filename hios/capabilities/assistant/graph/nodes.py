@@ -137,8 +137,8 @@ def create_nodes(
 
         execution = state.get("execution")
 
-        if execution is not None:
-            actions = execution.actions
+        if execution is not None and execution.execution is not None:
+            actions = execution.execution.actions
 
         action_response = action_response_builder.build(
             actions=actions,
