@@ -42,6 +42,9 @@ Home context:
 Understanding:
 {state.get("understanding")}
 
+Safety guidance:
+{state.get("safety_guidance")}
+
 Signals:
 {state.get("signals", [])}
 

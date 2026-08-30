@@ -87,8 +87,12 @@ def create_nodes(
             )
 
             return {
-                "decision": result.decision,
+                "observation": result.observation,
+                "assessment": result.assessment,
+                "safety_guidance": result.safety_guidance,
+                "goals": result.goals,
                 "plan": result.plans,
+                "decision": result.decision,
                 "execution": result.execution,
                 "outcome": result.outcome,
                 "reflection": result.reflection,
