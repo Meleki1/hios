@@ -38,8 +38,15 @@ class HomeAssistantChat:
             "image": request.image,
         }
 
+        config = {
+            "configurable": {
+                "thread_id": request.conversation_id,
+            }
+        }
+
         result = await self._graph.ainvoke(
             state,
+            config=config,
         )
 
         response = result.get("response")

@@ -41,6 +41,7 @@ def build_home_assistant_graph(
     interaction_understanding_service: (
         AssistantInteractionUnderstandingService
     ),
+    checkpointer,
     image_diagnosis_service=None,
     maintenance_intelligence=None,
     outreach=None,
@@ -167,4 +168,6 @@ def build_home_assistant_graph(
         "build_response",
         END,
     )
-    return graph.compile()
+    return graph.compile(
+        checkpointer=checkpointer,
+    )

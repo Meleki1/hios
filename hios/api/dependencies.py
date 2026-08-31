@@ -1,5 +1,4 @@
-from functools import lru_cache
-from fastapi import Depends
+from fastapi import Depends, Request
 from hios.capabilities.assistant.chat import (
     HomeAssistantChat,
 )
@@ -460,10 +459,15 @@ def get_home_context_assembler(
 def get_hios():
     return create_pest_control_hios()
 
+def get_checkpointer(request: Request):
+    return request.app.state.checkpointer
+
 def get_home_assistant_graph(
     session: AsyncSession,
+    checkpointer,
 ):
     return build_home_assistant_graph(
+        checkpointer=checkpointer,
         context_assembler=get_home_context_assembler(session),
         router=DefaultInteractionRouter(
             llm=get_assistant_llm(),
@@ -480,9 +484,13 @@ def get_home_assistant_graph(
     
 def get_home_assistant_chat(
     session: AsyncSession = Depends(get_db_session),
+    checkpointer=Depends(get_checkpointer),
 ) -> HomeAssistantChat:
     return HomeAssistantChat(
-        graph=get_home_assistant_graph(session),
+        graph=get_home_assistant_graph(
+            session,
+            checkpointer,
+            ),
     )
 
 def get_telegram_client() -> TelegramClient:
