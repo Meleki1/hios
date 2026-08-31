@@ -116,13 +116,32 @@ def create_nodes(
 
         action_response = action_response_builder.build(
             actions=actions,
-            safety_guidance=state.get("safety_guidance"),
             conversation_id=state.get("conversation_id"),
         )
 
+        safety_guidance = state.get(
+            "safety_guidance",
+        )
+
         if action_response is not None:
+
+            message = action_response.message
+
+            if safety_guidance and safety_guidance.guidance:
+                message += "\n\nSafety guidance:\n"
+
+                message += "\n".join(
+                    f"• {guidance}"
+                    for guidance in safety_guidance.guidance
+                )
+
             return {
-                "response": action_response,
+                "response": HomeAssistantResponse(
+                    message=message,
+                    conversation_id=action_response.conversation_id,
+                    capability=action_response.capability,
+                    metadata=action_response.metadata,
+                )
             }
 
         maintenance_recommendations = state.get(
