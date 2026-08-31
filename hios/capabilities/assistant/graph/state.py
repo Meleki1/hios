@@ -8,7 +8,7 @@ from hios.capabilities.image_diagnosis.models.image_diagnosis import ImageDiagno
 from hios.capabilities.assistant.models.outreach_decision import OutreachDecision
 from hios.capabilities.outreach.contracts import OutreachResult
 from hios.capabilities.assistant.models.interaction_routing import InteractionRoutingResult
-from hios.capabilities.execution.models.execution import Execution
+from hios.capabilities.execution.capability import ExecutionResult
 
 class HomeAssistantState(TypedDict, total=False):
 
@@ -39,7 +39,7 @@ class HomeAssistantState(TypedDict, total=False):
 
     decision: object | None
     plan: object | None
-    execution: Execution | None
+    execution: ExecutionResult | None
 
     outcome: object | None
 

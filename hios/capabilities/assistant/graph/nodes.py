@@ -104,17 +104,34 @@ def create_nodes(
     async def build_response(
         state: HomeAssistantState,
     ) -> dict:
-        maintenance_recommendations = (
-            state.get(
-                "maintenance_recommendations",
-                [],
-            )
+
+        execution_result = state.get("execution")
+        actions = []
+
+        if execution_result is not None:
+            execution = execution_result.execution
+
+            if execution is not None:
+                actions = execution.actions
+
+        action_response = action_response_builder.build(
+            actions=actions,
+            safety_guidance=state.get("safety_guidance"),
+            conversation_id=state.get("conversation_id"),
+        )
+
+        if action_response is not None:
+            return {
+                "response": action_response,
+            }
+
+        maintenance_recommendations = state.get(
+            "maintenance_recommendations",
+            [],
         )
 
         if maintenance_recommendations:
-            recommendation = (
-                maintenance_recommendations[0]
-            )
+            recommendation = maintenance_recommendations[0]
 
             return {
                 "response": HomeAssistantResponse(
@@ -135,27 +152,6 @@ def create_nodes(
                         "priority": recommendation.priority,
                     },
                 )
-            }
-
-        
-
-        execution = state.get("execution")
-        actions = []
-        
-        if execution is not None:
-            actions = execution.actions
-
-        action_response = action_response_builder.build(
-            actions=actions,
-            safety_guidance=state.get("safety_guidance"),
-            conversation_id=state.get(
-                "conversation_id",
-            ),
-        )
-
-        if action_response is not None:
-            return {
-                "response": action_response,
             }
 
         message = await response_generation_service.generate(

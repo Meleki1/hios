@@ -25,7 +25,7 @@ def route_after_understanding(
     state: HomeAssistantState,
 ) -> str:
 
-    if state["domain"] == AssistantDomain.PEST_CONTROL:
+    if state.get("domain") == AssistantDomain.PEST_CONTROL:
         return "dispatch_domain"
 
     return "intelligence"
