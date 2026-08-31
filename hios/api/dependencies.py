@@ -506,15 +506,21 @@ def get_telegram_webhook_handler(
     session: AsyncSession = Depends(
         get_db_session,
     ),
+    assistant: HomeAssistantChat = Depends(
+        get_home_assistant_chat,
+    ),
 ) -> TelegramWebhookHandler:
+
     settings = get_settings()
 
     home_repository = PostgresHomeRepository(
         session=session,
     )
 
-    information_repository = PostgresHomeInformationRepository(
-        session=session,
+    information_repository = (
+        PostgresHomeInformationRepository(
+            session=session,
+        )
     )
 
     state_repository = PostgresHomeStateRepository(
@@ -535,7 +541,7 @@ def get_telegram_webhook_handler(
     )
 
     return TelegramWebhookHandler(
-        assistant=get_home_assistant_chat(session),
+        assistant=assistant,
         telegram=get_telegram_client(),
         provisioning_service=provisioning_service,
     )
