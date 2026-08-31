@@ -101,6 +101,29 @@ def create_nodes(
 
         return {}
 
+    def _append_safety_guidance(
+        message: str,
+        safety_guidance,
+    ) -> str:
+
+        if (
+            safety_guidance is None
+            or not safety_guidance.guidance
+        ):
+            return message
+
+        safety = "\n".join(
+            f"• {guidance}"
+            for guidance in safety_guidance.guidance
+        )
+
+        return (
+            f"{message}\n\n"
+            f"Safety guidance:\n"
+            f"{safety}"
+        )
+
+
     async def build_response(
         state: HomeAssistantState,
     ) -> dict:
@@ -119,21 +142,11 @@ def create_nodes(
             conversation_id=state.get("conversation_id"),
         )
 
-        safety_guidance = state.get(
-            "safety_guidance",
-        )
-
         if action_response is not None:
-
-            message = action_response.message
-
-            if safety_guidance and safety_guidance.guidance:
-                message += "\n\nSafety guidance:\n"
-
-                message += "\n".join(
-                    f"• {guidance}"
-                    for guidance in safety_guidance.guidance
-                )
+            message = _append_safety_guidance(
+                action_response.message,
+                state.get("safety_guidance"),
+            )
 
             return {
                 "response": HomeAssistantResponse(
@@ -152,13 +165,20 @@ def create_nodes(
         if maintenance_recommendations:
             recommendation = maintenance_recommendations[0]
 
+            message = (
+                f"I recommend scheduling "
+                f"{recommendation.task}. "
+                f"{recommendation.reason}"
+            )
+
+            message = _append_safety_guidance(
+                message,
+                state.get("safety_guidance"),
+            )
+
             return {
                 "response": HomeAssistantResponse(
-                    message=(
-                        f"I recommend scheduling "
-                        f"{recommendation.task}. "
-                        f"{recommendation.reason}"
-                    ),
+                    message=message,
                     conversation_id=state.get(
                         "conversation_id",
                     ),
@@ -177,6 +197,11 @@ def create_nodes(
             state=state,
         )
 
+        message = _append_safety_guidance(
+            message,
+            state.get("safety_guidance"),
+        )
+
         domain = state.get("domain")
 
         return {
@@ -193,6 +218,8 @@ def create_nodes(
                 metadata={},
             )
         }
+
+    
     
     async def understand_interaction(
         state: HomeAssistantState,
