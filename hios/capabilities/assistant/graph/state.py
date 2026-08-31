@@ -7,8 +7,8 @@ from hios.capabilities.maintenance.models.maintenance_recommendation import Main
 from hios.capabilities.image_diagnosis.models.image_diagnosis import ImageDiagnosis
 from hios.capabilities.assistant.models.outreach_decision import OutreachDecision
 from hios.capabilities.outreach.contracts import OutreachResult
-
-
+from hios.capabilities.assistant.models.interaction_routing import InteractionRoutingResult
+from hios.capabilities.execution.models.execution import Execution
 
 class HomeAssistantState(TypedDict, total=False):
 
@@ -39,7 +39,7 @@ class HomeAssistantState(TypedDict, total=False):
 
     decision: object | None
     plan: object | None
-    execution: object | None
+    execution: Execution | None
 
     outcome: object | None
 
@@ -49,4 +49,5 @@ class HomeAssistantState(TypedDict, total=False):
     response: HomeAssistantResponse | None
     context: HomeContext | None
     domain: AssistantDomain | None
+    routing: InteractionRoutingResult | None
     metadata: dict

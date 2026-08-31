@@ -2,7 +2,9 @@ from hios.capabilities.assistant.response.assistant_action_response_builder impo
     AssistantActionResponseBuilder,
 )
 from hios.capabilities.execution.models.action import Action, ActionType
-
+from hios.capabilities.safety.contract.result import (
+    SafetyGuidanceResult,
+)
 
 
 def test_image_request_creates_assistant_response():
@@ -66,3 +68,30 @@ def test_empty_actions_returns_no_response():
     )
 
     assert response is None
+
+def test_image_request_response_includes_safety_guidance():
+    builder = AssistantActionResponseBuilder()
+
+    action = Action(
+        action_type=ActionType.IMAGE_REQUEST,
+        name="Request Image Evidence",
+        description="Request an image.",
+    )
+
+    safety_guidance = SafetyGuidanceResult(
+        guidance=[
+            "Avoid touching the droppings directly.",
+            "Keep children and pets away from the area.",
+        ],
+    )
+
+    response = builder.build(
+        actions=[action],
+        safety_guidance=safety_guidance,
+        conversation_id="conversation-1",
+    )
+
+    assert response is not None
+    assert "Avoid touching the droppings directly." in response.message
+    assert "Keep children and pets away from the area." in response.message
+    assert "photo" in response.message.lower()

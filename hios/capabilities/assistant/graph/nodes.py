@@ -15,7 +15,7 @@ from hios.runtime.context import RuntimeContext
 from hios.capabilities.outreach.policy import DefaultOutreachPolicy
 from hios.capabilities.assistant.services.response_generation import AssistantResponseGenerationService
 from hios.capabilities.assistant.services.interaction_understanding import AssistantInteractionUnderstandingService
-
+from hios.capabilities.assistant.models.interaction_routing import InteractionRoutingRequest
 
 
 def create_nodes(
@@ -55,25 +55,22 @@ def create_nodes(
         state: HomeAssistantState,
     ) -> dict:
 
-        domain = router.route(
-            state["message"],
+        routing = await router.route(
+            InteractionRoutingRequest(
+                message=state["message"],
+                has_image=state.get("image") is not None,
+                previous_domain=state.get("domain"),
+            ),
         )
 
         return {
-            "domain": domain,
+            "domain": routing.domain,
+            "routing": routing,
         }
 
     async def dispatch_domain(
         state: HomeAssistantState,
     ) -> dict:
-
-        maintenance_recommendations = state.get(
-            "maintenance_recommendations",
-            [],
-        )
-
-        if maintenance_recommendations:
-            return {}
 
         domain = state["domain"]
 
@@ -83,6 +80,9 @@ def create_nodes(
                     subject_id=state["subject_id"],
                     home_id=state["home_id"],
                     message=state["message"],
+                    image_diagnosis=state.get(
+                        "image_diagnosis"
+                    ),
                 )
             )
 
@@ -137,15 +137,17 @@ def create_nodes(
                 )
             }
 
-        actions = []
+        
 
         execution = state.get("execution")
-
-        if execution is not None and execution.execution is not None:
-            actions = execution.execution.actions
+        actions = []
+        
+        if execution is not None:
+            actions = execution.actions
 
         action_response = action_response_builder.build(
             actions=actions,
+            safety_guidance=state.get("safety_guidance"),
             conversation_id=state.get(
                 "conversation_id",
             ),

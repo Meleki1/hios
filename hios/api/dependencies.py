@@ -465,7 +465,9 @@ def get_home_assistant_graph(
 ):
     return build_home_assistant_graph(
         context_assembler=get_home_context_assembler(session),
-        router=DefaultInteractionRouter(),
+        router=DefaultInteractionRouter(
+            llm=get_assistant_llm(),
+        ),
         hios=get_hios(),
         intelligence_graph=get_intelligence_graph(session),
         response_generation_service=(

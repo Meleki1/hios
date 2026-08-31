@@ -1,16 +1,16 @@
 from abc import ABC, abstractmethod
 
-from hios.capabilities.assistant.models.assistant_domain import (
-    AssistantDomain,
+from hios.capabilities.assistant.models.interaction_routing import (
+    InteractionRoutingRequest,
+    InteractionRoutingResult,
 )
 
 
 class InteractionRouter(ABC):
 
     @abstractmethod
-    def route(
+    async def route(
         self,
-        message: str,
-    ) -> AssistantDomain:
-
+        request: InteractionRoutingRequest,
+    ) -> InteractionRoutingResult:
         raise NotImplementedError

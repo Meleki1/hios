@@ -18,9 +18,17 @@ from hios.capabilities.assistant.response.assistant_action_response_builder impo
 )
 from hios.capabilities.assistant.services.response_generation import AssistantResponseGenerationService
 from hios.capabilities.assistant.services.interaction_understanding import AssistantInteractionUnderstandingService
+from hios.capabilities.assistant.models.assistant_domain import AssistantDomain
 
 
+def route_after_understanding(
+    state: HomeAssistantState,
+) -> str:
 
+    if state["domain"] == AssistantDomain.PEST_CONTROL:
+        return "dispatch_domain"
+
+    return "intelligence"
 
 
 def build_home_assistant_graph(
@@ -33,6 +41,7 @@ def build_home_assistant_graph(
     interaction_understanding_service: (
         AssistantInteractionUnderstandingService
     ),
+    image_diagnosis_service=None,
     maintenance_intelligence=None,
     outreach=None,
     outreach_policy=None,
@@ -48,6 +57,7 @@ def build_home_assistant_graph(
         interaction_understanding_service=(
             interaction_understanding_service
         ),
+        image_diagnosis_service=image_diagnosis_service,
         maintenance_intelligence=maintenance_intelligence,
         outreach=outreach,
         outreach_policy=outreach_policy,
@@ -72,6 +82,11 @@ def build_home_assistant_graph(
     graph.add_node(
         "understand_interaction",
         nodes["understand_interaction"],
+    )
+
+    graph.add_node(
+        "diagnose_image",
+        nodes["diagnose_image"],
     )
 
     graph.add_node(
@@ -111,12 +126,21 @@ def build_home_assistant_graph(
 
     graph.add_edge(
         "route_interaction",
-        "understand_interaction",
+        "diagnose_image",
     )
 
     graph.add_edge(
+        "diagnose_image",
         "understand_interaction",
-        "intelligence",
+    )
+
+    graph.add_conditional_edges(
+        "understand_interaction",
+        route_after_understanding,
+        {
+            "dispatch_domain": "dispatch_domain",
+            "intelligence": "intelligence",
+        },
     )
 
     graph.add_edge(
