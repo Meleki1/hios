@@ -111,6 +111,10 @@ class PestControlRequest(
 
     image_diagnosis: ImageDiagnosis | None = None
 
+    previously_communicated_guidance: list[str] = Field(
+        default_factory=list,
+    )
+
 
 class PestControlResult(
     CapabilityResult,
@@ -233,6 +237,9 @@ class DefaultPestControlCapability(
         safety_guidance_result = await self._safety.execute(
             SafetyGuidanceRequest(
                 understanding=understanding_result,
+                previously_communicated_guidance=(
+                    request.previously_communicated_guidance
+                ),
             ),
             context,
         )

@@ -1,4 +1,4 @@
-from pydantic import Field
+"""from pydantic import Field
 
 from hios.contracts.requests import CapabilityRequest
 
@@ -16,5 +16,5 @@ class PestControlRequest(CapabilityRequest):
     metadata: dict = Field(
         default_factory=dict,
     )
-    
-    previously_communicated_guidance: list[str] = Field(default_factory=list)
+
+    """
