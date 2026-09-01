@@ -4,13 +4,6 @@ from hios.capabilities.assistant.models.assistant_response import (
 from hios.capabilities.execution.models.action import Action, ActionType
 
 
-
-from hios.capabilities.assistant.models.assistant_response import (
-    HomeAssistantResponse,
-)
-from hios.capabilities.execution.models.action import Action, ActionType
-
-
 class AssistantActionResponseBuilder:
 
     def build(
@@ -18,6 +11,8 @@ class AssistantActionResponseBuilder:
         *,
         actions: list[Action] | None,
         safety_guidance=None,
+        assessment=None,
+        observation=None,
         conversation_id: str | None = None,
     ) -> HomeAssistantResponse | None:
 
@@ -34,6 +29,14 @@ class AssistantActionResponseBuilder:
             if action.action_type == ActionType.IMAGE_REQUEST:
 
                 message_parts = []
+
+                summary = self._describe_suspected_activity(
+                    assessment=assessment,
+                    observation=observation,
+                )
+
+                if summary:
+                    message_parts.append(summary)
 
                 if guidance:
                     message_parts.append(
@@ -60,5 +63,31 @@ class AssistantActionResponseBuilder:
                         "requires_user_input": True,
                     },
                 )
+
+        return None
+
+    def _describe_suspected_activity(
+        self,
+        *,
+        assessment,
+        observation,
+    ) -> str | None:
+
+        if assessment is not None and assessment.pest_type:
+
+            summary = (
+                f"It looks like this may be {assessment.pest_type}."
+            )
+
+            if assessment.explanation:
+                summary = f"{summary} {assessment.explanation}"
+
+            return summary
+
+        if observation is not None and observation.description:
+            return (
+                "It looks like you've reported possible pest "
+                f"activity: {observation.description}"
+            )
 
         return None
