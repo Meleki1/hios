@@ -25,6 +25,7 @@ class HomeAssistantState(TypedDict, total=False):
 
     understanding: InteractionUnderstanding | None
     knowledge: object | None
+    context: HomeContext | None
     memories: list[object]
 
     timeline: list[object]

@@ -6,6 +6,7 @@ from hios.capabilities.assistant.graph.state import (
 from hios.capabilities.assistant.models.assistant_response import (
     HomeAssistantResponse,
 )
+from uuid import uuid4
 
 
 @dataclass
@@ -30,19 +31,23 @@ class HomeAssistantChat:
         request: ChatRequest,
     ) -> HomeAssistantResponse:
 
+        conversation_id = (request.conversation_id or str(uuid4()))
+
         state: HomeAssistantState = {
             "subject_id": request.subject_id,
             "home_id": request.home_id,
-            "conversation_id": request.conversation_id,
+            "conversation_id": conversation_id,
             "message": request.message,
             "image": request.image,
         }
 
         config = {
             "configurable": {
-                "thread_id": request.conversation_id,
+                "thread_id": conversation_id,
             }
         }
+
+
 
         result = await self._graph.ainvoke(
             state,

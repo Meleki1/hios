@@ -40,3 +40,40 @@ class HomeContext:
         self.memories = memories or []
         self.timeline = timeline or []
         self.maintenance_records = maintenance_records
+
+    def __str__(self) -> str:
+
+        lines = [
+            f"Home: {self.home}",
+            f"Home information: {self.information}",
+            f"Home state: {self.state}",
+        ]
+
+        lines.append(
+            f"Property profile: {self.property_profile}"
+            if self.property_profile is not None
+           else "Property profile: none on file"
+        )
+
+        if self.memories:
+            memory_lines = "\n".join(
+                f"  - {memory.description}"
+                for memory in self.memories
+            )
+            lines.append(f"Known memories:\n{memory_lines}")
+        else:
+            lines.append("Known memories: none")
+
+        if self.maintenance_records:
+            maintenance_lines = "\n".join(
+                f"  - {record.task} ({record.status})"
+                for record in self.maintenance_records
+            )
+            lines.append(
+                f"Maintenance records:\n{maintenance_lines}"
+            )
+        else:
+            lines.append("Maintenance records: none")
+
+        return "\n".join(lines)
+ 

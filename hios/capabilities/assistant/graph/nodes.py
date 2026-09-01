@@ -50,8 +50,10 @@ def create_nodes(
         )
 
         return {
+            "context": context,
             "timeline": context.timeline,
             "maintenance_records": context.maintenance_records,
+            "memories": context.memories,
         }
 
     async def append_user_message(
