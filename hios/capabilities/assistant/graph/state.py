@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import TypedDict, Annotated
 from hios.capabilities.assistant.models.assistant_domain import AssistantDomain
 from hios.capabilities.assistant.models.home_context import HomeContext
 from hios.capabilities.assistant.models.assistant_response import HomeAssistantResponse
@@ -9,6 +9,8 @@ from hios.capabilities.assistant.models.outreach_decision import OutreachDecisio
 from hios.capabilities.outreach.contracts import OutreachResult
 from hios.capabilities.assistant.models.interaction_routing import InteractionRoutingResult
 from hios.capabilities.execution.capability import ExecutionResult
+from langgraph.graph.message import add_messages
+from langchain_core.messages import BaseMessage
 
 class HomeAssistantState(TypedDict, total=False):
 
@@ -18,6 +20,8 @@ class HomeAssistantState(TypedDict, total=False):
     message: str
     image: bytes | None
     image_diagnosis: ImageDiagnosis | None
+
+    messages: Annotated[list[BaseMessage], add_messages]
 
     understanding: InteractionUnderstanding | None
     knowledge: object | None

@@ -16,6 +16,8 @@ from hios.capabilities.outreach.policy import DefaultOutreachPolicy
 from hios.capabilities.assistant.services.response_generation import AssistantResponseGenerationService
 from hios.capabilities.assistant.services.interaction_understanding import AssistantInteractionUnderstandingService
 from hios.capabilities.assistant.models.interaction_routing import InteractionRoutingRequest
+from langchain_core.messages import HumanMessage
+
 
 
 def create_nodes(
@@ -50,6 +52,18 @@ def create_nodes(
         return {
             "timeline": context.timeline,
             "maintenance_records": context.maintenance_records,
+        }
+
+    async def append_user_message(
+        state: HomeAssistantState,
+    ) -> dict:
+
+        return {
+            "messages": [
+                HumanMessage(
+                    content=state["message"],
+                )
+            ]
         }
 
     async def route_interaction(
@@ -435,6 +449,7 @@ def create_nodes(
 
     return {
         "assemble_context": assemble_context,
+        "append_user_message": append_user_message,
         "diagnose_image": diagnose_image,
         "route_interaction": route_interaction,
         "understand_interaction": understand_interaction,
