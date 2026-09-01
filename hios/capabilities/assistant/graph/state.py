@@ -47,7 +47,6 @@ class HomeAssistantState(TypedDict, total=False):
     learning: object | None
 
     response: HomeAssistantResponse | None
-    context: HomeContext | None
     domain: AssistantDomain | None
     routing: InteractionRoutingResult | None
     metadata: dict

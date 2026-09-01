@@ -490,7 +490,7 @@ def get_home_assistant_chat(
         graph=get_home_assistant_graph(
             session,
             checkpointer,
-            ),
+        ),
     )
 
 def get_telegram_client() -> TelegramClient:

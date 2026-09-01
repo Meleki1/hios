@@ -48,7 +48,8 @@ def create_nodes(
         )
 
         return {
-            "context": context,
+            "timeline": context.timeline,
+            "maintenance_records": context.maintenance_records,
         }
 
     async def route_interaction(
@@ -266,14 +267,7 @@ def create_nodes(
                 understanding.explicit_intents
             )
 
-        context = state.get(
-            "context",
-        )
-
-        timeline = []
-
-        if context is not None:
-            timeline = context.timeline
+        timeline = state.get("timeline", [])
 
         intelligence_state = {
             "subject_id": state["subject_id"],
@@ -287,10 +281,10 @@ def create_nodes(
             intelligence_state,
         )
 
-        maintenance_records = []
-
-        if context is not None:
-            maintenance_records = context.maintenance_records
+        maintenance_records = state.get(
+            "maintenance_records",
+            [],
+        )
 
         maintenance_recommendations = []
 
@@ -346,12 +340,7 @@ def create_nodes(
 
         recommendation = recommendations[0]
 
-        context = state.get("context")
-
-        timeline = []
-
-        if context is not None:
-            timeline = context.timeline
+        timeline = state.get("timeline", [])
 
         decision = outreach_policy.decide(
             recommendation,
