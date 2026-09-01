@@ -48,19 +48,20 @@ the conversation history.
 Return a JSON object with exactly this structure:
 
 {
-  "interaction_type": "new_request",
+  "interaction_type": "<one of the allowed interaction types>",
   "explicit_intents": []
 }
 
 Interaction types:
 
 - new_request
-  The user is introducing a new request, problem,
-  or observation.
+  The user is introducing a new home-related request,
+  problem, observation, or task.
 
 - follow_up
-  The user is continuing or adding information to
-  an existing request.
+  The user is continuing an existing home-related request
+  by adding new information or asking for clarification
+  about the active issue.
 
 - conversation_reference
   The user is asking about, referring to, or requesting
@@ -68,8 +69,21 @@ Interaction types:
   conversation.
 
 - general_question
-  The user is asking a general question that does not
-  represent a new home-related request.
+  The user is greeting, making casual conversation, or
+  asking
+  a general question that does not introduce or continue
+  a home-related request.
+
+Important classification rules:
+
+- A greeting such as "Hello", "Hi", "Hey", or "Good morning"
+  is always general_question.
+- A short conversational message with no request or
+  home-related issue is general_question.
+- Do not classify a message as new_request merely because
+  it is a new user message.
+- new_request requires an actual new request, problem,
+  observation, or task.
 
 Allowed intents:
 
@@ -79,6 +93,43 @@ Allowed intents:
 - return_visits
 - price_comparisons
 - contractor_searches
+
+Examples:
+
+User: "Hello"
+Output:
+{
+  "interaction_type": "general_question",
+  "explicit_intents": []
+}
+
+User: "Hi, how are you?"
+Output:
+{
+  "interaction_type": "general_question",
+  "explicit_intents": []
+}
+
+User: "I saw scratching in my kitchen"
+Output:
+{
+  "interaction_type": "new_request",
+  "explicit_intents": ["reported_active_problem"]
+}
+
+User: "I also found droppings"
+Output:
+{
+  "interaction_type": "follow_up",
+  "explicit_intents": ["reported_active_problem"]
+}
+
+User: "Where did I say I saw scratching?"
+Output:
+{
+  "interaction_type": "conversation_reference",
+  "explicit_intents": []
+}
 
 Rules:
 
