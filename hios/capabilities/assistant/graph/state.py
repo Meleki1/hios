@@ -9,6 +9,10 @@ from hios.capabilities.assistant.models.outreach_decision import OutreachDecisio
 from hios.capabilities.outreach.contracts import OutreachResult
 from hios.capabilities.assistant.models.interaction_routing import InteractionRoutingResult
 from hios.capabilities.execution.capability import ExecutionResult
+from hios.capabilities.pest_control.models.observation import PestObservation
+from hios.capabilities.pest_control.models.assessment import PestAssessment
+from hios.capabilities.safety.contract.result import SafetyGuidanceResult
+from hios.capabilities.goals.contract.result import GoalResult
 from langgraph.graph.message import add_messages
 from langchain_core.messages import BaseMessage
 
@@ -34,6 +38,12 @@ class HomeAssistantState(TypedDict, total=False):
     risk: object | None
     prediction: object | None
     intent_score: object | None
+
+    observation: PestObservation | None
+    assessment: PestAssessment | None
+    safety_guidance: SafetyGuidanceResult | None
+    goals: GoalResult | None
+
     communicated_safety_guidance: list[str]
     maintenance_recommendations: list[MaintenanceRecommendation]
     maintenance_records: list[object]
