@@ -39,25 +39,10 @@ class DefaultSafetyGuidanceCapability(
             request.understanding,
         )
 
-        previous_guidance = context.working_memory.get(
-            "safety.communicated",
-            [],
-        )
-
         new_guidance = [
-            item
-            for item in guidance
-            if item not in previous_guidance
+            item for item in guidance
+            if item not in request.previously_communicated_guidance
         ]
-
-        context.working_memory.put(
-            "safety.communicated",
-            list(
-                dict.fromkeys(
-                    previous_guidance + guidance
-                )
-            ),
-        )
 
         return SafetyGuidanceResult(
             guidance=new_guidance,

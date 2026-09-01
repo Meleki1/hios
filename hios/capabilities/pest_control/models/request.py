@@ -16,3 +16,5 @@ class PestControlRequest(CapabilityRequest):
     metadata: dict = Field(
         default_factory=dict,
     )
+    
+    previously_communicated_guidance: list[str] = Field(default_factory=list)

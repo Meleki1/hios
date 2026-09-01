@@ -33,7 +33,7 @@ class HomeAssistantState(TypedDict, total=False):
     risk: object | None
     prediction: object | None
     intent_score: object | None
-
+    communicated_safety_guidance: list[str]
     maintenance_recommendations: list[MaintenanceRecommendation]
     maintenance_records: list[object]
 

@@ -88,8 +88,14 @@ def create_nodes(
     ) -> dict:
 
         domain = state["domain"]
+        
 
         if domain == AssistantDomain.PEST_CONTROL:
+
+            previously = state.get(
+                "communicated_safety_guidance", []
+            )
+            
             result = await hios.execute(
                 PestControlRequest(
                     subject_id=state["subject_id"],
@@ -98,13 +104,23 @@ def create_nodes(
                     image_diagnosis=state.get(
                         "image_diagnosis"
                     ),
+                    previously_communicated_guidance=state.get(
+                        "communicated_safety_guidance", []
+                    )
                 )
+            )
+
+            new_guidance = (
+                result.safety_guidance.guidance
+                if result.safety_guidance
+                else []
             )
 
             return {
                 "observation": result.observation,
                 "assessment": result.assessment,
                 "safety_guidance": result.safety_guidance,
+                "communicated_safety_guidance": previously + new_guidance,
                 "goals": result.goals,
                 "plan": result.plans,
                 "decision": result.decision,
