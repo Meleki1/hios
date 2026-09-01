@@ -114,7 +114,18 @@ def create_nodes(
                 "learning": result.learning,
             }
 
-        return {}
+        return {
+            "observation": None,
+            "assessment": None,
+            "safety_guidance": None,
+            "goals": None,
+            "plan": None,
+            "decision": None,
+            "execution": None,
+            "outcome": None,
+            "reflection": None,
+            "learning": None,
+        }
 
     def _append_safety_guidance(
         message: str,
@@ -272,7 +283,7 @@ def create_nodes(
         )
 
         return {
-            "image_diagnosis": diagnosis,
+            "image_diagnosis": None,
         }
 
     async def intelligence(
