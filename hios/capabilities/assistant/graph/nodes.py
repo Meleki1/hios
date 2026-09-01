@@ -165,18 +165,14 @@ def create_nodes(
 
         action_response = action_response_builder.build(
             actions=actions,
+            safety_guidance=state.get("safety_guidance"),
             conversation_id=state.get("conversation_id"),
         )
 
         if action_response is not None:
-            message = _append_safety_guidance(
-                action_response.message,
-                state.get("safety_guidance"),
-            )
-
             return {
                 "response": HomeAssistantResponse(
-                    message=message,
+                    message=action_response.message,
                     conversation_id=action_response.conversation_id,
                     capability=action_response.capability,
                     metadata=action_response.metadata,
@@ -394,10 +390,14 @@ def create_nodes(
             )
 
             if outreach_decision is None:
-                return {}
+                return {
+                    "outreach_result": None,
+                }
 
             if not outreach_decision.required:
-                return {}
+                return {
+                    "outreach_result": None,
+                }
 
             if outreach is None:
                 raise RuntimeError(
@@ -411,7 +411,9 @@ def create_nodes(
             )
 
             if not recommendations:
-                return {}
+                return {
+                    "outreach_result": None,
+                }
 
             recommendation = recommendations[0]
 
