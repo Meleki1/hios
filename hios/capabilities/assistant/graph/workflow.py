@@ -70,14 +70,13 @@ def build_home_assistant_graph(
         HomeAssistantState,
     )
 
-    graph.add_edge(
-        START,
+    graph.add_node(
         "append_user_message",
+        nodes["append_user_message"],
     )
-
-    graph.add_edge(
-        "append_user_message",
+    graph.add_node(
         "assemble_context",
+        nodes["assemble_context"],
     )
 
     graph.add_node(
@@ -122,6 +121,11 @@ def build_home_assistant_graph(
 
     graph.add_edge(
         START,
+        "append_user_message",
+    )
+
+    graph.add_edge(
+        "append_user_message",
         "assemble_context",
     )
 
