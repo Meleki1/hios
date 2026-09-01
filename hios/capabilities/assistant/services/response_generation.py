@@ -30,6 +30,13 @@ recommendations.
 If information is uncertain, communicate that uncertainty.
 
 Be concise, helpful, and conversational.
+
+Do not list, restate, or summarize the safety guidance
+items in your message. Safety guidance is shown to you
+only so you understand the situation's severity — it is
+appended to your message automatically, verbatim, as a
+separate list right after it. Repeating it yourself would
+show it to the user twice.
 """
 
         user_prompt = f"""
