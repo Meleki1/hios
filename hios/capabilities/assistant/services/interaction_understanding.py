@@ -209,7 +209,7 @@ Current user message:
         for message in previous_messages:
             role = "User"
 
-            if message.type == "assistant":
+            if message.type == "ai":
                 role = "Assistant"
 
             lines.append(

@@ -1,12 +1,11 @@
+import uuid
 from dataclasses import dataclass
-
 from hios.capabilities.assistant.graph.state import (
     HomeAssistantState,
 )
 from hios.capabilities.assistant.models.assistant_response import (
     HomeAssistantResponse,
 )
-from uuid import uuid4
 
 
 @dataclass
@@ -31,7 +30,7 @@ class HomeAssistantChat:
         request: ChatRequest,
     ) -> HomeAssistantResponse:
 
-        conversation_id = (request.conversation_id or str(uuid4()))
+        conversation_id = (request.conversation_id or str(uuid.uuid4()))
 
         state: HomeAssistantState = {
             "subject_id": request.subject_id,

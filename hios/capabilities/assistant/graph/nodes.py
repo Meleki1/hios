@@ -16,7 +16,7 @@ from hios.capabilities.outreach.policy import DefaultOutreachPolicy
 from hios.capabilities.assistant.services.response_generation import AssistantResponseGenerationService
 from hios.capabilities.assistant.services.interaction_understanding import AssistantInteractionUnderstandingService
 from hios.capabilities.assistant.models.interaction_routing import InteractionRoutingRequest
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 
 
 
@@ -194,7 +194,12 @@ def create_nodes(
                     conversation_id=action_response.conversation_id,
                     capability=action_response.capability,
                     metadata=action_response.metadata,
-                )
+                ),
+                "messages": [
+                    AIMessage(
+                        content=action_response.message,
+                    )
+                ],
             }
 
         maintenance_recommendations = state.get(
@@ -230,7 +235,12 @@ def create_nodes(
                         ),
                         "priority": recommendation.priority,
                     },
-                )
+                ),
+                "messages": [
+                    AIMessage(
+                        content=message,
+                    )
+                ],
             }
 
         message = await response_generation_service.generate(
@@ -256,7 +266,12 @@ def create_nodes(
                     else None
                 ),
                 metadata={},
-            )
+            ),
+            "messages": [
+                AIMessage(
+                    content=message,
+                )
+            ],
         }
 
     
@@ -290,14 +305,16 @@ def create_nodes(
         image = state.get("image")
 
         if not image:
-            return {}
+            return {
+            "image_diagnosis": None,
+        }
 
         diagnosis = await image_diagnosis_service.diagnose(
             image=image,
         )
 
         return {
-            "image_diagnosis": None,
+            "image_diagnosis": diagnosis,
         }
 
     async def intelligence(
