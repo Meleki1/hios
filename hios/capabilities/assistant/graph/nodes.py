@@ -6,7 +6,7 @@ from hios.capabilities.assistant.router.interaction_router import InteractionRou
 from hios.capabilities.assistant.models.assistant_domain import AssistantDomain
 from hios.capabilities.pest_control.contract import PestControlRequest
 from hios.capabilities.assistant.models.assistant_response import HomeAssistantResponse
-from hios.capabilities.assistant.models.interaction_understanding import InteractionUnderstanding
+from hios.capabilities.assistant.models.interaction_understanding import InteractionUnderstanding, InteractionType
 from hios.capabilities.assistant.response.assistant_action_response_builder import AssistantActionResponseBuilder
 from hios.capabilities.assistant.models.outreach_decision import OutreachDecision
 from hios.capabilities.outreach.contracts import OutreachRequest, OutreachResult
@@ -90,9 +90,23 @@ def create_nodes(
     ) -> dict:
 
         domain = state["domain"]
+
+        understanding = state.get("understanding")
+
+        is_meta_question = (
+            understanding is not None
+            and understanding.interaction_type
+            in (
+                InteractionType.CONVERSATION_REFERENCE,
+                InteractionType.GENERAL_QUESTION,
+            )
+        )
         
 
-        if domain == AssistantDomain.PEST_CONTROL:
+        if (
+            domain == AssistantDomain.PEST_CONTROL
+            and not is_meta_question
+        ):
 
             previously = state.get(
                 "communicated_safety_guidance", []
@@ -130,6 +144,20 @@ def create_nodes(
                 "outcome": result.outcome,
                 "reflection": result.reflection,
                 "learning": result.learning,
+            }
+        
+        if (
+            domain == AssistantDomain.PEST_CONTROL
+            and is_meta_question
+        ):
+
+            return {
+                "plan": None,
+                "decision": None,
+                "execution": None,
+                "outcome": None,
+                "reflection": None,
+                "learning": None,
             }
 
         return {
@@ -274,8 +302,6 @@ def create_nodes(
             ],
         }
 
-    
-    
     async def understand_interaction(
         state: HomeAssistantState,
     ) -> dict:

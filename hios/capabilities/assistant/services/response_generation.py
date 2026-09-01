@@ -42,6 +42,12 @@ Home context:
 Understanding:
 {state.get("understanding")}
 
+Reported observation:
+{state.get("observation")}
+
+Assessment:
+{state.get("assessment")}
+
 Safety guidance:
 {state.get("safety_guidance")}
 
