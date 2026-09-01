@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from hios.capabilities.home.models.home import Home
 from hios.capabilities.home.models.home_information import (
     HomeInformation,
@@ -19,27 +20,19 @@ from hios.capabilities.maintenance.models.maintenance import (
 )
 from pydantic import Field
 
+@dataclass
 class HomeContext:
 
-    def __init__(
-        self,
-        home: Home,
-        information: HomeInformation,
-        state: HomeState,
-        property_profile: PropertyProfile | None = None,
-        memories: list[MemoryEntry] | None = None,
-        timeline: list[TimelineEntry] | None = None,
-        maintenance_records: list[Maintenance] = Field(
-            default_factory=list,
-        )
-    ):
-        self.home = home
-        self.information = information
-        self.state = state
-        self.property_profile = property_profile
-        self.memories = memories or []
-        self.timeline = timeline or []
-        self.maintenance_records = maintenance_records
+    home: Home
+    information: HomeInformation
+    state: HomeState
+    property_profile: PropertyProfile | None = None
+    memories: list[MemoryEntry] | None = None
+    timeline: list[TimelineEntry] | None = None
+    maintenance_records: list[Maintenance] = Field(
+        default_factory=list
+    )
+    
 
     def __str__(self) -> str:
 
