@@ -239,10 +239,19 @@ def create_nodes(
     async def understand_interaction(
         state: HomeAssistantState,
     ) -> dict:
+
         understanding = (
             await interaction_understanding_service.understand(
                 state=state,
             )
+        )
+
+        print("=== UNDERSTANDING RESULT ===")
+        print(
+            f"interaction_type={understanding.interaction_type}"
+        )
+        print(
+            f"explicit_intents={understanding.explicit_intents}"
         )
 
         return {
