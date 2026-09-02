@@ -72,3 +72,34 @@ class TelegramClient:
         response.raise_for_status()
 
         return response.json()
+
+    async def download_file(
+        self,
+        *,
+        file_id: str,
+    ) -> bytes:
+        get_file_response = await self._http_client.get(
+            f"{self._base_url}/getFile",
+            params={
+                "file_id": file_id,
+            },
+        )
+
+        get_file_response.raise_for_status()
+
+        file_path = (
+            get_file_response.json()["result"]["file_path"]
+        )
+
+        file_url = (
+            f"https://api.telegram.org/file/"
+            f"bot{self._bot_token}/{file_path}"
+        )
+
+        file_response = await self._http_client.get(
+            file_url,
+        )
+
+        file_response.raise_for_status()
+
+        return file_response.content

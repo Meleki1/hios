@@ -37,12 +37,16 @@ class TelegramWebhookHandler:
         if message is None:
             return
 
-        if message.text is None:
+        has_photo = bool(message.photo)
+
+        if not has_photo and message.text is None:
             return
 
-        text = message.text.strip()
+        text = (message.text or message.caption or "").strip()
 
-        if not text:
+        if has_photo:
+            text = text or "I've attached a photo of the issue."
+        elif not text:
             return
 
         chat_id = message.chat.id
@@ -51,12 +55,23 @@ class TelegramWebhookHandler:
             await self._provisioning_service.provision()
         )
 
+        image = None
+
+        if has_photo:
+            largest_photo = message.photo[-1]
+
+            image = await self._telegram.download_file(
+                file_id=largest_photo.file_id,
+            )
+
+
         result = await self._assistant.send(
             ChatRequest(
                 subject_id=subject_id,
                 home_id=home_id,
                 message=text,
                 conversation_id=str(chat_id),
+                image = image,
             )
         )
 

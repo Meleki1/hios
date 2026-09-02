@@ -8,12 +8,14 @@ from hios.capabilities.assistant.router.default_interaction_router import (
 from hios.capabilities.intelligence.graph.workflow import (
     build_intelligence_graph,
 )
+from openai import AsyncOpenAI
 import httpx
 from hios.core.config import get_settings
 from hios.capabilities.environmental.providers.weather_client import (
     WeatherHttpClient,
 )
-
+from hios.capabilities.image_diagnosis.services.image_diagnosis_service import ImageDiagnosisService
+from hios.capabilities.image_diagnosis.providers.openai_image_diagnosis_provider import OpenAIImageDiagnosisProvider)
 from hios.capabilities.local_activity.clients.planning_data_http_client import (
     PlanningDataHTTPClient,
 )
@@ -462,6 +464,19 @@ def get_hios():
 def get_checkpointer(request: Request):
     return request.app.state.checkpointer
 
+def get_image_diagnosis_service() -> ImageDiagnosisService:
+    settings = get_settings()
+
+    return ImageDiagnosisService(
+        provider=OpenAIImageDiagnosisProvider(
+            client=AsyncOpenAI(
+                api_key=settings.openai_api_key,
+            ),
+            model=settings.image_diagnosis_model,
+        ),
+    )
+
+
 def get_home_assistant_graph(
     session: AsyncSession,
     checkpointer,
@@ -480,6 +495,7 @@ def get_home_assistant_graph(
         interaction_understanding_service=(
             get_interaction_understanding_service()
         ),
+        image_diagnosis_service=get_image_diagnosis_service(),
     )
     
 def get_home_assistant_chat(

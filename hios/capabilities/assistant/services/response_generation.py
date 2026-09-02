@@ -31,13 +31,24 @@ If information is uncertain, communicate that uncertainty.
 
 Be concise, helpful, and conversational.
 
-Do not list, restate, or summarize the safety guidance
-items in your message. Safety guidance is shown to you
-only so you understand the situation's severity — it is
-appended to your message automatically, verbatim, as a
-separate list right after it. Repeating it yourself would
-show it to the user twice.
+You are not told the exact wording of the safety guidance
+for this interaction — only whether any exists. That is
+deliberate: it is appended to your message automatically,
+verbatim, as a separate list right after it, so you cannot
+repeat content you were never shown. If the state below
+says safety guidance is present, you may say something
+brief like "please see the safety guidance below," but do
+not guess, invent, or attempt to reconstruct what it says.
 """
+
+        safety_guidance = state.get("safety_guidance")
+        safety_guidance_note = (
+            "Present — will be appended after your message. "
+            "Do not describe or guess its contents."
+            if safety_guidance is not None
+            and safety_guidance.guidance
+            else "None for this interaction."
+        )
 
         user_prompt = f"""
 User message:
@@ -56,7 +67,7 @@ Assessment:
 {state.get("assessment")}
 
 Safety guidance:
-{state.get("safety_guidance")}
+{safety_guidance_note}
 
 Signals:
 {state.get("signals", [])}
