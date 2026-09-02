@@ -15,7 +15,7 @@ from hios.capabilities.environmental.providers.weather_client import (
     WeatherHttpClient,
 )
 from hios.capabilities.image_diagnosis.services.image_diagnosis_service import ImageDiagnosisService
-from hios.capabilities.image_diagnosis.providers.openai_image_diagnosis_provider import OpenAIImageDiagnosisProvider)
+from hios.capabilities.image_diagnosis.providers.openai_image_diagnosis_provider import OpenAIImageDiagnosisProvider
 from hios.capabilities.local_activity.clients.planning_data_http_client import (
     PlanningDataHTTPClient,
 )
