@@ -459,7 +459,9 @@ def get_home_context_assembler(
     )
 
 def get_hios():
-    return create_pest_control_hios()
+    return create_pest_control_hios(
+        llm=get_assistant_llm(),
+    )
 
 def get_checkpointer(request: Request):
     return request.app.state.checkpointer

@@ -69,15 +69,13 @@ from hios.capabilities.safety.capability import (
     DefaultSafetyGuidanceCapability,
 )
 
-from hios.capabilities.safety.default import (
-    DefaultSafetyGuidanceGenerator,
-)
+from hios.capabilities.safety.llm import LLMSafetyGuidanceGenerator
 
 
 RULES_PATH = Path(__file__).parent / "rules"
 
 
-def register(builder):
+def register(builder, *, llm):
 
     repository = YamlRuleRepository(
         RULES_PATH,
@@ -96,7 +94,7 @@ def register(builder):
     )
 
     safety = DefaultSafetyGuidanceCapability(
-        generator=DefaultSafetyGuidanceGenerator(),
+        generator=LLMSafetyGuidanceGenerator(llm=llm),
     )
 
     goals = DefaultGoalCapability(

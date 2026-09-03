@@ -4,11 +4,11 @@ from .pipeline import PEST_CONTROL_PIPELINE
 from .registry import register
 
 
-def create():
+def create(*, llm):
 
     builder = HIOSBuilder()
 
-    register(builder)
+    register(builder, llm=llm)
 
     return (
         builder

@@ -17,6 +17,7 @@ from hios.capabilities.assistant.services.response_generation import AssistantRe
 from hios.capabilities.assistant.services.interaction_understanding import AssistantInteractionUnderstandingService
 from hios.capabilities.assistant.models.interaction_routing import InteractionRoutingRequest
 from langchain_core.messages import HumanMessage, AIMessage
+from hios.capabilities.execution.models.action import ActionType
 
 
 
@@ -173,7 +174,7 @@ def create_nodes(
             "learning": None,
         }
 
-    def _append_safety_guidance(
+    def _prepend_safety_guidance(
         message: str,
         safety_guidance,
     ) -> str:
@@ -185,15 +186,29 @@ def create_nodes(
             return message
 
         safety = "\n".join(
-            f"• {guidance}"
+            f"- {guidance}"
             for guidance in safety_guidance.guidance
         )
 
-        return (
-            f"{message}\n\n"
-            f"Safety guidance:\n"
-            f"{safety}"
-        )
+        prefix = f"Safety guidance:\n{safety}"
+
+        if not message:
+            return prefix
+
+        return f"{prefix}\n\n{message}"
+
+    def _append_photo_request(
+        message: str,
+        photo_request: str | None,
+    ) -> str:
+
+        if not photo_request:
+            return message
+
+        if not message:
+            return photo_request
+ 
+        return f"{message}\n\n{photo_request}"
 
 
     async def build_response(
@@ -209,26 +224,11 @@ def create_nodes(
             if execution is not None:
                 actions = execution.actions
 
-        action_response = action_response_builder.build(
-            actions=actions,
-            safety_guidance=state.get("safety_guidance"),
-            conversation_id=state.get("conversation_id"),
-        )
-
-        if action_response is not None:
-            return {
-                "response": HomeAssistantResponse(
-                    message=action_response.message,
-                    conversation_id=action_response.conversation_id,
-                    capability=action_response.capability,
-                    metadata=action_response.metadata,
-                ),
-                "messages": [
-                    AIMessage(
-                        content=action_response.message,
-                    )
-                ],
-            }
+        photo_request = (
+            action_response_builder.build_photo_request(
+                actions=actions,
+            )
+         )
 
         maintenance_recommendations = state.get(
             "maintenance_recommendations",
@@ -244,9 +244,14 @@ def create_nodes(
                 f"{recommendation.reason}"
             )
 
-            message = _append_safety_guidance(
+            message = _prepend_safety_guidance(
                 message,
                 state.get("safety_guidance"),
+            )
+
+            message = _append_photo_request(
+                message,
+                photo_request,
             )
 
             return {
@@ -275,12 +280,35 @@ def create_nodes(
             state=state,
         )
 
-        message = _append_safety_guidance(
+        message = _prepend_safety_guidance(
             message,
             state.get("safety_guidance"),
         )
 
+        message = _append_photo_request(
+            message,
+            photo_request,
+        )
+
         domain = state.get("domain")
+
+        capability = (
+            domain.value
+            if domain is not None
+            else None
+        )
+
+        metadata = {}
+
+        if photo_request is not None:
+      
+            capability = "image_diagnosis"
+            metadata = {
+                "action_type": (
+                    ActionType.IMAGE_REQUEST.value
+                ),
+                "requires_user_input": True,
+            }
 
         return {
             "response": HomeAssistantResponse(
@@ -288,12 +316,8 @@ def create_nodes(
                 conversation_id=state.get(
                     "conversation_id",
                 ),
-                capability=(
-                    domain.value
-                    if domain is not None
-                    else None
-                ),
-                metadata={},
+                capability=capability,
+                metadata=metadata,          
             ),
             "messages": [
                 AIMessage(

@@ -35,7 +35,7 @@ class DefaultSafetyGuidanceCapability(
         context: RuntimeContext,
     ) -> SafetyGuidanceResult:
 
-        guidance = self._generator.generate(
+        guidance = await self._generator.generate(
             request.understanding,
         )
 
