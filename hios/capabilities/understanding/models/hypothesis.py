@@ -1,8 +1,11 @@
 from __future__ import annotations
-
+from enum import Enum
 from hios.intelligence.evidence.model import Evidence
 from hios.shared.base import HIOSModel
 
+class HypothesisStatus(str, Enum):
+    SUSPECTED = "suspected"
+    CONFIRMED = "confirmed"
 
 class Hypothesis(HIOSModel):
     """

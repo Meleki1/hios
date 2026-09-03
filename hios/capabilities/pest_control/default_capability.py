@@ -160,6 +160,8 @@ class DefaultPestControlCapability(
             await self._understanding.execute(
                 UnderstandingRequest(
                     knowledge=knowledge_result,
+                    observation=observation.description,
+                    evidence=observation.evidence,
                 ),
                 context,
             )

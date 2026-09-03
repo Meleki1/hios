@@ -1,4 +1,5 @@
 from hios.capabilities.understanding.contract import UnderstandingResult
+from hios.capabilities.understanding.models.hypothesis import HypothesisStatus
 from hios.capabilities.goals.generator import GoalGenerator
 from hios.capabilities.goals.models.goal import Goal
 from hios.capabilities.goals.models.priority import GoalPriority
@@ -28,52 +29,35 @@ class DefaultGoalGenerator(GoalGenerator):
                 goal.id,
                 goal,
             )
-
         for hypothesis in understanding.hypotheses:
 
-            if hypothesis.name == "Rodent Infestation":
-                eliminate = Goal(
-                    id="eliminate_infestation",
-                    name="Eliminate infestation",
-                    description="Remove the rodent infestation.",
+            if hypothesis.status == HypothesisStatus.CONFIRMED:
+                goal = Goal(
+                    id=f"address_confirmed_{hypothesis.id}",
+                    name=f"Address {hypothesis.name}",
+                    description=(
+                        f"Recommend remediation for the confirmed "
+                        f"{hypothesis.name.lower()}."
+                    ),
                     priority=GoalPriority.CRITICAL,
                     source_hypothesis=hypothesis.id,
                 )
-
-                prevent = Goal(
-                    id="prevent_recurrence",
-                    name="Prevent recurrence",
-                    description="Prevent future infestations.",
-                    priority=GoalPriority.HIGH,
-                    source_hypothesis=hypothesis.id,
-                )
-
-                goals.setdefault(
-                    eliminate.id,
-                    eliminate,
-                )
-
-                goals.setdefault(
-                    prevent.id,
-                    prevent,
-                )
-
-            elif hypothesis.name == "Possible Rodent Activity":
-                investigate = Goal(
-                    id="investigate_rodent_activity",
+            else:
+                goal = Goal(
+                    id=f"gather_evidence_{hypothesis.id}",
                     name="Gather visual evidence",
                     description=(
-                        "Gather visual evidence to better understand "
-                        "the possible rodent activity."
+                        f"Gather visual evidence to better "
+                        f"understand the suspected "
+                        f"{hypothesis.name.lower()}."
                     ),
                     priority=GoalPriority.HIGH,
                     source_hypothesis=hypothesis.id,
                 )
 
-                goals.setdefault(
-                    investigate.id,
-                    investigate,
-                )
-        
+            goals.setdefault(
+                goal.id,
+                goal,
+            )
 
         return list(goals.values())

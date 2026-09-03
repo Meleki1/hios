@@ -14,6 +14,8 @@ from pydantic import Field
 class UnderstandingRequest(CapabilityRequest):
     
     knowledge: KnowledgeResult
+    observation: str = ""
+    evidence: list[str] = Field(default_factory=list)
 
 
 class UnderstandingResult(CapabilityResult):

@@ -5,7 +5,7 @@ from hios.runtime.types import CapabilityType
 from hios.capabilities.pest_control.default_capability import (
     DefaultPestControlCapability,
 )
-
+from hios.capabilities.understanding.llm import LLMUnderstandingStrategy
 from hios.capabilities.knowledge.rule import (
     RuleKnowledgeCapability,
 )
@@ -88,9 +88,7 @@ def register(builder, *, llm):
     )
 
     understanding = RuleUnderstandingCapability(
-        strategy=DefaultUnderstandingStrategy(
-            resolver=RuleBasedHypothesisResolver(),
-        ),
+        strategy=LLMUnderstandingStrategy(llm=llm),
     )
 
     safety = DefaultSafetyGuidanceCapability(

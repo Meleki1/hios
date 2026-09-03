@@ -56,6 +56,23 @@ class RuleBasedHypothesisResolver(HypothesisResolver):
                     evidence=knowledge.evidence,
                 )
             )
+        
+        if "Possible cockroach activity" in knowledge.facts:
+            hypotheses.append(
+                Hypothesis(
+                    id="cockroach",
+                    name="Possible Cockroach Activity",
+                    description=(
+                        "Evidence suggests possible cockroach "
+                        "activity."
+                    ),
+                    confidence=0.7,
+                    supporting_facts=[
+                        "Possible cockroach activity",
+                    ],
+                    evidence=knowledge.evidence,
+                )
+            )
 
         return hypotheses
 

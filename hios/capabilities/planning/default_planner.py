@@ -52,101 +52,47 @@ class DefaultPlanner(Planner):
                     goal.id,
                     plan,
                 )
-            elif goal.name == "Eliminate infestation":
+            elif goal.id.startswith("address_confirmed_"):
                 plan = Plan(
                     goal_id=goal.id,
-                    name="Rodent Elimination Plan",
+                    name=f"{goal.name} Plan",
                     description=(
-                        "Eliminate the active rodent infestation."
+                        "Confirm the extent of the issue and "
+                        "recommend appropriate professional "
+                        "treatment."
                     ),
                     priority=goal.priority,
                     tasks=[
                         Task(
                             name="Inspect property",
                             description=(
-                                "Inspect the property to locate "
-                                "rodent activity."
+                                "Inspect the property to confirm "
+                                "the extent of the issue."
                             ),
-                            
                         ),
                         Task(
-                            name="Seal entry points",
+                            name="Recommend treatment",
                             description=(
-                                "Seal all identified entry points."
+                                "Recommend appropriate professional "
+                                "treatment to address the confirmed "
+                                "issue."
                             ),
-                            
-                        ),
-                        Task(
-                            name="Deploy traps",
-                            description=(
-                                "Place traps in strategic locations."
-                            ),
-                            
                         ),
                         Task(
                             name="Schedule follow-up",
                             description=(
-                                "Schedule a follow-up inspection."
+                                "Schedule a follow-up to confirm "
+                                "the issue has been resolved."
                             ),
-                            
                         ),
                     ],
                     constraints=[
                         Constraint(
                             name="Safety",
                             description=(
-                                "Use appropriate PPE while "
-                                "handling rodents."
+                                "Use appropriate PPE and follow "
+                                "safe handling practices."
                             ),
-                           
-                        )
-                    ],
-                )
-
-                plans.setdefault(
-                    goal.id,
-                    plan,
-                )
-
-            elif goal.name == "Prevent recurrence":
-                plan = Plan(
-                    goal_id=goal.id,
-                    name="Rodent Prevention Plan",
-                    description=(
-                        "Reduce the likelihood of future infestations."
-                    ),
-                    priority=goal.priority,
-                    tasks=[
-                        Task(
-                            name="Inspect property",
-                            description=(
-                                "Inspect for potential vulnerabilities."
-                            ),
-                            
-                        ),
-                        Task(
-                            name="Educate customer",
-                            description=(
-                                "Provide prevention recommendations."
-                            ),
-                            
-                        ),
-                        Task(
-                            name="Schedule monitoring",
-                            description=(
-                                "Arrange periodic inspections."
-                            ),
-                            
-                        ),
-                    ],
-                    constraints=[
-                        Constraint(
-                            name="Customer Cooperation",
-                            description=(
-                                "Requires the customer to follow "
-                                "prevention advice."
-                            ),
-                            
                         )
                     ],
                 )
