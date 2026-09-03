@@ -1,0 +1,28 @@
+id: severe-wasp
+
+name: Severe Wasp Infestation
+
+description: Evidence indicating a high-confidence wasp infestation.
+
+condition:
+  operator: all
+  operands:
+    - wasp nest
+    - operator: any
+      operands:
+        - large nest
+        - multiple wasps
+        - nest near entrance
+        - aggressive wasps
+
+facts:
+  - High confidence wasp infestation
+
+score: 1.0
+priority: 100
+enabled: true
+
+tags:
+  - wasps
+  - infestation
+  - severe

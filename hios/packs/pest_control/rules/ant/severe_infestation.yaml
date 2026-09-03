@@ -1,0 +1,28 @@
+id: severe-ant
+
+name: Severe Ant Infestation
+
+description: Evidence indicating a high-confidence ant infestation.
+
+condition:
+  operator: all
+  operands:
+    - ant trail
+    - operator: any
+      operands:
+        - large number of ants
+        - multiple ant trails
+        - ant nest
+        - recurring ant problem
+
+facts:
+  - High confidence ant infestation
+
+score: 1.0
+priority: 100
+enabled: true
+
+tags:
+  - ants
+  - infestation
+  - severe

@@ -1,0 +1,26 @@
+id: possible-wasp-activity
+
+name: Possible Wasp Activity
+
+description: Evidence suggesting possible wasp or other stinging insect activity.
+
+condition:
+  operator: any
+  operands:
+    - wasp sighting
+    - wasp nest
+    - hornet sighting
+    - buzzing sound
+    - nest under eaves
+    - stinging insect
+
+facts:
+  - Possible wasp activity
+
+score: 0.7
+priority: 50
+enabled: true
+
+tags:
+  - wasps
+  - possible-activity

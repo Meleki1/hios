@@ -1,0 +1,26 @@
+id: possible-flea-activity
+
+name: Possible Flea Activity
+
+description: Evidence suggesting possible flea activity.
+
+condition:
+  operator: any
+  operands:
+    - flea sighting
+    - flea bites
+    - flea dirt
+    - pet scratching
+    - itchy bites
+    - fleas on pet
+
+facts:
+  - Possible flea activity
+
+score: 0.7
+priority: 50
+enabled: true
+
+tags:
+  - fleas
+  - possible-activity

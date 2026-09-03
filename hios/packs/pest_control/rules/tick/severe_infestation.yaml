@@ -1,0 +1,28 @@
+id: severe-tick
+
+name: Severe Tick Infestation
+
+description: Evidence indicating a high-confidence tick infestation.
+
+condition:
+  operator: all
+  operands:
+    - tick bite
+    - operator: any
+      operands:
+        - multiple ticks
+        - engorged tick
+        - tick on pet
+        - ticks in yard
+
+facts:
+  - High confidence tick infestation
+
+score: 1.0
+priority: 100
+enabled: true
+
+tags:
+  - ticks
+  - infestation
+  - severe

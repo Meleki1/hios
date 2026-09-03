@@ -1,0 +1,28 @@
+id: severe-termite
+
+name: Severe Termite Infestation
+
+description: Evidence indicating a high-confidence termite infestation.
+
+condition:
+  operator: all
+  operands:
+    - mud tubes
+    - operator: any
+      operands:
+        - wood damage
+        - hollow-sounding wood
+        - frass
+        - extensive wood damage
+
+facts:
+  - High confidence termite infestation
+
+score: 1.0
+priority: 100
+enabled: true
+
+tags:
+  - termites
+  - infestation
+  - severe

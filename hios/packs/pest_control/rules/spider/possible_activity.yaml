@@ -1,0 +1,25 @@
+id: possible-spider-activity
+
+name: Possible Spider Activity
+
+description: Evidence suggesting possible spider activity.
+
+condition:
+  operator: any
+  operands:
+    - spider sighting
+    - spider web
+    - cobwebs
+    - egg sac
+    - webs in corners
+
+facts:
+  - Possible spider activity
+
+score: 0.7
+priority: 50
+enabled: true
+
+tags:
+  - spiders
+  - possible-activity

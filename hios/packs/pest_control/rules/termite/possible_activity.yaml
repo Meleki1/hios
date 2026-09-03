@@ -1,0 +1,28 @@
+id: possible-termite-activity
+
+name: Possible Termite Activity
+
+description: Evidence suggesting possible termite activity.
+
+condition:
+  operator: any
+  operands:
+    - mud tubes
+    - discarded wings
+    - wood damage
+    - hollow-sounding wood
+    - frass
+    - termite droppings
+    - swarmers
+    - winged termites
+
+facts:
+  - Possible termite activity
+
+score: 0.7
+priority: 50
+enabled: true
+
+tags:
+  - termites
+  - possible-activity

@@ -1,0 +1,26 @@
+id: possible-silverfish-activity
+
+name: Possible Silverfish Activity
+
+description: Evidence suggesting possible silverfish activity.
+
+condition:
+  operator: any
+  operands:
+    - silverfish sighting
+    - silverfish damage
+    - holes in paper
+    - yellow stains
+    - shed skin
+    - silverfish droppings
+
+facts:
+  - Possible silverfish activity
+
+score: 0.7
+priority: 50
+enabled: true
+
+tags:
+  - silverfish
+  - possible-activity

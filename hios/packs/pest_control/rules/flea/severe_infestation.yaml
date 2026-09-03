@@ -1,0 +1,28 @@
+id: severe-flea
+
+name: Severe Flea Infestation
++
+description: Evidence indicating a high-confidence flea infestation.
++
+condition:
+  operator: all
+  operands:
+    - flea dirt
+    - operator: any
+      operands:
+        - flea bites
+        - pet scratching
+        - fleas on pet
+        - multiple flea bites
+
+facts:
+  - High confidence flea infestation
+
+score: 1.0
+priority: 100
+enabled: true
+
+tags:
+  - fleas
+  - infestation
+  - severe

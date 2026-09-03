@@ -1,0 +1,28 @@
+id: severe-spider
+
+name: Severe Spider Infestation
+
+description: Evidence indicating a high-confidence spider infestation.
+
+condition:
+  operator: all
+  operands:
+    - egg sac
+    - operator: any
+      operands:
+        - multiple webs
+        - spider sighting
+        - venomous spider
+        - webs in multiple rooms
+
+facts:
+  - High confidence spider infestation
+
+score: 1.0
+priority: 100
+enabled: true
+
+tags:
+  - spiders
+  - infestation
+  - severe

@@ -1,0 +1,27 @@
+id: possible-bed-bug-activity
+
+name: Possible Bed Bug Activity
+
+description: Evidence suggesting possible bed bug activity.
+
+condition:
+  operator: any
+  operands:
+    - bed bug sighting
+    - bite marks
+    - blood stains
+    - fecal spots
+    - molted skins
+    - bed bug shells
+    - musty odor
+
+facts:
+  - Possible bed bug activity
+
+score: 0.7
+priority: 50
+enabled: true
+
+tags:
+  - bed-bugs
++  - possible-activity

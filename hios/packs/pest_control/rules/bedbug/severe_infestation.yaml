@@ -1,0 +1,28 @@
+id: severe-bed-bug
+
+name: Severe Bed Bug Infestation
+
+description: Evidence indicating a high-confidence bed bug infestation.
+
+condition:
+  operator: all
+  operands:
+    - fecal spots
+    - operator: any
+      operands:
+        - blood stains
+        - molted skins
+        - bed bug sighting
+        - musty odor
+
+facts:
+  - High confidence bed bug infestation
+
+score: 1.0
+priority: 100
+enabled: true
+
+tags:
+  - bed-bugs
+  - infestation
+  - severe

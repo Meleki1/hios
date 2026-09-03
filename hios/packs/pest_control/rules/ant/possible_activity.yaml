@@ -1,0 +1,27 @@
+id: possible-ant-activity
+
+name: Possible Ant Activity
+
+description: Evidence suggesting possible ant activity.
+
+condition:
+  operator: any
+  operands:
+    - ant sighting
+    - ant trail
+    - ants
+    - anthill
+    - ant hill
+    - ant nest
+    - ants in the kitchen
+
+facts:
+  - Possible ant activity
+
+score: 0.7
+priority: 50
+enabled: true
+
+tags:
+  - ants
+  - possible-activity

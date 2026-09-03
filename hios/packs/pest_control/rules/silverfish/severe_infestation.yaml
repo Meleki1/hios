@@ -1,0 +1,28 @@
+id: severe-silverfish
+
++name: Severe Silverfish Infestation
+
+description: Evidence indicating a high-confidence silverfish infestation.
+
+condition:
+  operator: all
+  operands:
+    - silverfish damage
+    - operator: any
+      operands:
+        - holes in paper
+        - yellow stains
+        - silverfish sighting
+        - shed skin
+
+facts:
+  - High confidence silverfish infestation
+
+score: 1.0
+priority: 100
+enabled: true
+
+tags:
+  - silverfish
+  - infestation
+  - severe

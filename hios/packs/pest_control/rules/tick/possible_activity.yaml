@@ -1,0 +1,25 @@
+id: possible-tick-activity
+
+name: Possible Tick Activity
+
+description: Evidence suggesting possible tick activity.
+
+condition:
+  operator: any
+  operands:
+    - tick sighting
+    - tick bite
+    - tick on pet
+    - engorged tick
+    - tick in yard
+
+facts:
+  - Possible tick activity
+
+score: 0.7
+priority: 50
+enabled: true
+
+tags:
+  - ticks
+  - possible-activity
