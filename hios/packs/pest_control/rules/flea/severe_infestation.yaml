@@ -1,9 +1,9 @@
 id: severe-flea
 
 name: Severe Flea Infestation
-+
+
 description: Evidence indicating a high-confidence flea infestation.
-+
+
 condition:
   operator: all
   operands:
