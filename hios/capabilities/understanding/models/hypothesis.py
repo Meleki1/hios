@@ -23,3 +23,5 @@ class Hypothesis(HIOSModel):
     supporting_facts: list[str]
 
     evidence: list[Evidence]
+
+    status: HypothesisStatus = HypothesisStatus.SUSPECTED
