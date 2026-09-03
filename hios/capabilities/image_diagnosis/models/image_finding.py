@@ -14,7 +14,4 @@ class ImageFinding(BaseModel):
 
     metadata: dict[str, object] = Field(
         default_factory=dict,
-        json_schema_extra={
-            "additionalProperties": False,
-        },
     )

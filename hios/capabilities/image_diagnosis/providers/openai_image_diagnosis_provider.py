@@ -1,11 +1,40 @@
 from openai import AsyncOpenAI
+from pydantic import BaseModel, Field
 
 from hios.capabilities.image_diagnosis.models.image_diagnosis import (
     ImageDiagnosis,
 )
+from hios.capabilities.image_diagnosis.models.image_finding import (
+    ImageFinding,
+)
 from hios.capabilities.image_diagnosis.providers.image_diagnosis_provider import (
     ImageDiagnosisProvider,
 )
+
+
+class _ImageFindingResponse(BaseModel):
+    category: str
+    description: str
+
+    confidence: float = Field(
+        ge=0.0,
+        le=1.0,
+    )
+
+    location: str | None = None
+
+
+class _ImageDiagnosisResponse(BaseModel):
+   
+
+    findings: list[_ImageFindingResponse] = Field(
+        default_factory=list,
+    )
+
+    overall_confidence: float = Field(
+        ge=0.0,
+        le=1.0,
+    )
 
 
 class OpenAIImageDiagnosisProvider(
@@ -54,10 +83,23 @@ class OpenAIImageDiagnosisProvider(
                     ],
                 }
             ],
-            text_format=ImageDiagnosis,
+            text_format=_ImageDiagnosisResponse,
         )
 
-        return response.output_parsed
+        parsed = response.output_parsed
+
+        return ImageDiagnosis(
+            findings=[
+                ImageFinding(
+                    category=finding.category,
+                    description=finding.description,
+                    confidence=finding.confidence,
+                    location=finding.location,
+                )
+                for finding in parsed.findings
+            ],
+            overall_confidence=parsed.overall_confidence,
+        )
 
     @staticmethod
     def _encode_image(
