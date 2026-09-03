@@ -174,7 +174,7 @@ def create_nodes(
             "learning": None,
         }
 
-    def _prepend_safety_guidance(
+    def _append_safety_guidance(
         message: str,
         safety_guidance,
     ) -> str:
@@ -244,7 +244,7 @@ def create_nodes(
                 f"{recommendation.reason}"
             )
 
-            message = _prepend_safety_guidance(
+            message = _append_safety_guidance(
                 message,
                 state.get("safety_guidance"),
             )
@@ -280,7 +280,7 @@ def create_nodes(
             state=state,
         )
 
-        message = _prepend_safety_guidance(
+        message = _append_safety_guidance(
             message,
             state.get("safety_guidance"),
         )

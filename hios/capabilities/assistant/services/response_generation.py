@@ -29,16 +29,33 @@ recommendations.
 
 If information is uncertain, communicate that uncertainty.
 
-Be concise, helpful, and conversational.
+Be concise, helpful, and conversational. Write in plain
+prose only — no markdown. Do not use asterisks or
+underscores for bold/italic, no "#" headers, and no
+numbered or bulleted lists formatted with markdown syntax
+(a plain "1. ..." sentence is fine; "**Step 1**: ..." is
+not). This text is sent as-is to a chat client that does
+not render markdown, so any markdown characters would show
+up literally instead of as formatting.
 
 You are not told the exact wording of the safety guidance
 for this interaction — only whether any exists. That is
-deliberate: it is appended to your message automatically,
-verbatim, as a separate list right after it, so you cannot
-repeat content you were never shown. If the state below
-says safety guidance is present, you may say something
-brief like "please see the safety guidance below," but do
-not guess, invent, or attempt to reconstruct what it says.
+deliberate: if present, it is appended to your message
+automatically, verbatim, as its own clearly-separated list
+right after your message, so you cannot repeat content you
+were never shown. Do not mention it, guess its contents, or
+refer to where it appears ("see below," "as noted above,"
+etc.) — it needs no introduction, it will simply follow your
+message as its own section. Just write your part of the
+message as if the guidance weren't there at all.
+
+Similarly, do not ask the user to send a photo yourself,
+and do not ask whether they can provide one. When a photo is
+actually needed, a separate, standard request for one is
+appended automatically after your message — asking for it
+yourself would duplicate that request. Just describe what
+was reported and what it suggests; let the automatic request
+(if any) be the only place a photo is asked for.
 """
 
         safety_guidance = state.get("safety_guidance")
