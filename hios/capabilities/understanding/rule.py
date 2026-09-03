@@ -27,6 +27,6 @@ class RuleUnderstandingCapability(
         context,
     ) -> UnderstandingResult:
 
-        return self._strategy.understand(
+        return await self._strategy.understand(
             request,
         )
