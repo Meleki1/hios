@@ -145,6 +145,7 @@ def create_nodes(
                 "outcome": result.outcome,
                 "reflection": result.reflection,
                 "learning": result.learning,
+                "maintenance_recommendations": [],
             }
         
         if (
@@ -159,6 +160,8 @@ def create_nodes(
                 "outcome": None,
                 "reflection": None,
                 "learning": None,
+                "safety_guidance": None,
+                "maintenance_recommendations": [],
             }
 
         return {
@@ -179,6 +182,26 @@ def create_nodes(
         safety_guidance,
     ) -> str:
 
+        """
+        Safety guidance is its own, independent concern -- it is
+        not tied to any particular action or response type. It is
+        composed onto the END of whatever message is otherwise
+        being sent (a maintenance recommendation, a general reply,
+        or a reply that will also carry a photo request appended
+        after it in turn).
+
+        This used to be PREPENDED instead -- guidance shown before
+        any explanation of what was even found, which read as an
+        abrupt wall of bullet points with no context, and forced
+        the response-generation prompt into telling the model to
+        say "please see the safety guidance below" even though the
+        guidance was actually above. Leading with the narrative and
+        appending guidance after it fixes both: the message reads
+        narrative-first, and "below" is now literally accurate if
+        the model ever needs to say it (though the prompt no longer
+        asks it to -- see AssistantResponseGenerationService).
+        """
+
         if (
             safety_guidance is None
             or not safety_guidance.guidance
@@ -190,17 +213,28 @@ def create_nodes(
             for guidance in safety_guidance.guidance
         )
 
-        prefix = f"Safety guidance:\n{safety}"
+        suffix = f"Safety guidance:\n{safety}"
 
         if not message:
-            return prefix
+            return suffix
 
-        return f"{prefix}\n\n{message}"
+        return f"{message}\n\n{suffix}"
 
     def _append_photo_request(
         message: str,
         photo_request: str | None,
     ) -> str:
+
+        """
+        The photo request is also independent: it is decided purely
+        by whether an action calls for one (see
+        AssistantActionResponseBuilder.build_photo_request), and is
+        appended to whatever is otherwise being sent -- safety
+        guidance, a maintenance recommendation, or a general reply
+        -- rather than replacing it or being bundled with it.
+        """
+
+        
 
         if not photo_request:
             return message
@@ -336,14 +370,6 @@ def create_nodes(
             )
         )
 
-        print("=== UNDERSTANDING RESULT ===")
-        print(
-            f"interaction_type={understanding.interaction_type}"
-        )
-        print(
-            f"explicit_intents={understanding.explicit_intents}"
-        )
-
         return {
             "understanding": understanding,
         }
@@ -441,23 +467,23 @@ def create_nodes(
             "maintenance_recommendations",
             [],
         )
-        outreach_policy = DefaultOutreachPolicy()
 
         if not recommendations:
             return {
                 "outreach_decision": None,
             }
 
-        if outreach_policy is None:
-            return {
-                "outreach_decision": None,
-            }
+        policy = (
+            outreach_policy
+            if outreach_policy is not None
+            else DefaultOutreachPolicy()
+        )
 
         recommendation = recommendations[0]
 
         timeline = state.get("timeline", [])
 
-        decision = outreach_policy.decide(
+        decision = policy.decide(
             recommendation,
             timeline,
         )

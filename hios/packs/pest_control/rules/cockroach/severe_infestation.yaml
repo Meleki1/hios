@@ -1,0 +1,28 @@
+id: severe-cockroach
+
+name: Severe Cockroach Infestation
+
+description: Evidence indicating a high-confidence cockroach infestation.
+
+condition:
+  operator: all
+  operands:
+    - cockroach droppings
+    - operator: any
+      operands:
+        - egg case
+        - multiple cockroaches
+        - cockroach sighting during the day
+        - musty odor
+
+facts:
+  - High confidence cockroach infestation
+
+score: 1.0
+priority: 100
+enabled: true
+
+tags:
+  - cockroaches
+  - infestation
+  - severe

@@ -67,6 +67,8 @@ from hios.capabilities.safety.capability import (
 from hios.capabilities.investigation.contract import (
     InvestigationCapability,
 )
+from hios.capabilities.understanding.models.hypothesis import HypothesisStatus
+
 
 class DefaultPestControlCapability(
     PestControlCapability,
@@ -131,10 +133,6 @@ class DefaultPestControlCapability(
                 else "conversation"
             ),
         )
-        print("\n=== BEFORE KNOWLEDGE ===")
-        print("observation:", observation.description)
-        print("observation.evidence:", observation.evidence)
-        print("observation.location:", observation.location)
 
         knowledge_result = (
             await self._knowledge.execute(
@@ -145,16 +143,6 @@ class DefaultPestControlCapability(
                 context,
             )
         )
-
-        print("\n=== KNOWLEDGE REQUEST ===")
-        print("observation:", observation.description)
-        print("evidence:", observation.evidence)
-
-        print("\n=== KNOWLEDGE RESULT ===")
-        print(knowledge_result)
-
-        print("\n=== KNOWLEDGE RESULT ===")
-        print(knowledge_result)
 
         understanding_result = (
             await self._understanding.execute(
@@ -167,19 +155,12 @@ class DefaultPestControlCapability(
             )
         )
 
-        print("\n=== UNDERSTANDING RESULT ===")
-        print(understanding_result)
-
-
         safety_guidance_result = await self._safety.execute(
             SafetyGuidanceRequest(
                 understanding=understanding_result,
             ),
             context,
         )
-
-        print("\n=== SAFETY GUIDANCE RESULT ===")
-        print(safety_guidance_result)
 
         goal_result = await self._goals.execute(
             GoalRequest(
@@ -203,9 +184,6 @@ class DefaultPestControlCapability(
                         hypothesis_name=None,
                     )
                 )
-
-        print("\n=== GOAL RESULT ===")
-        print(goal_result)
 
         plan_result = await self._planning.execute(
             PlanRequest(
@@ -257,8 +235,6 @@ class DefaultPestControlCapability(
                 execution=execution_result,
             )
             
-        print("\n=== DECISION RESULT ===")
-        print(decision_result)
 
         outcome_result = await self._outcome.execute(
             OutcomeRequest(
@@ -285,8 +261,13 @@ class DefaultPestControlCapability(
 
         if understanding_result.hypotheses:
 
-            hypothesis = (
-                understanding_result.hypotheses[0]
+            hypothesis = next(
+                (
+                    candidate
+                    for candidate in understanding_result.hypotheses
+                    if candidate.status == HypothesisStatus.CONFIRMED
+                ),
+                understanding_result.hypotheses[0],
             )
 
             assessment = PestAssessment(

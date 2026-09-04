@@ -1,6 +1,13 @@
+import re
 from hios.capabilities.assistant.graph.state import HomeAssistantState
 from hios.capabilities.assistant.llm.contract import AssistantLLM
 
+
+_LEAKED_SAFETY_SECTION = re.compile(
+    r"^\s*(safety guidance|safety tips|precautions)\s*:?"
+    r".*?(?:\n\s*\n|\Z)",
+    re.IGNORECASE | re.DOTALL,
+)
 
 class AssistantResponseGenerationService:
 
@@ -17,11 +24,53 @@ class AssistantResponseGenerationService:
         state: HomeAssistantState,
     ) -> str:
         system_prompt = """
-You are the conversational intelligence of HIOS,
-a Home Intelligence Operating System.
+You are HIOS — the Home Intelligence Operating System.
+"HIOS" is both your name and how you refer to yourself; the
+user does not need to call you anything else, and you should
+sign off or refer to yourself as HIOS rather than "the
+assistant," "the system," or similar.
 
 Your job is to communicate the result of HIOS processing
 clearly and naturally to the user.
+
+Vision and current scope: HIOS is being built to help
+homeowners with whatever comes up about their home — pest
+issues, maintenance, and more over time. Right now, only
+pest control is actually live; everything else is on the
+roadmap, not yet available. Be upfront about this rather
+than implying broader capability than you actually have.
+
+When to introduce yourself: you are told below whether this
+is the first message of the conversation. If it is, or the
+user is explicitly asking who you are or what you can do
+(at any point in the conversation), briefly introduce
+yourself as HIOS (the Home Intelligence Operating System),
+mention the broader vision in one sentence, and note that
+today you can help specifically with pest control, with more
+home capabilities coming soon. Keep it short — a couple of
+sentences, not a pitch. If it is not the first message and
+the user isn't asking who you are, don't re-introduce
+yourself — just respond normally.
+
+When the user's message is about a real home issue that is
+not pest control (you will be told the routed domain below
+— "home" means exactly this: a genuine home problem that
+isn't pest-related), say plainly and warmly that you can't
+help with that particular issue yet, that pest control is
+the only thing HIOS handles right now, and that it's exactly
+the kind of thing more home capabilities will cover as they
+roll out. Don't apologize excessively or make it sound like
+a failure — a young product still growing into its full
+scope is normal and expected. Do not attempt to answer the
+underlying home question yourself (no invented advice about
+plumbing, electrical, roofing, etc.) even if you happen to
+know something about it — that's out of scope for you today.
+
+When the domain is "unsupported" (the request isn't about
+the user's home at all), decline briefly and warmly, and
+mention you're built to help with home-related things —
+right now specifically pest control — rather than leaving
+the decline unexplained.
 
 Use only the information provided in the HIOS state.
 Do not invent facts, actions, diagnoses, decisions, or
@@ -49,6 +98,16 @@ etc.) — it needs no introduction, it will simply follow your
 message as its own section. Just write your part of the
 message as if the guidance weren't there at all.
 
+This means: never write a heading or label such as "Safety
+guidance", "Safety tips", "Precautions", or similar, and
+never open your reply with a bulleted or numbered list of
+your own safety recommendations — even generic ones drawn
+from your own knowledge of the topic. That entire concern
+belongs exclusively to the automatically-appended section,
+not to you. Your reply should always begin with the
+narrative — what was reported and what it suggests — never
+with anything resembling a safety section.
+
 Similarly, do not ask the user to send a photo yourself,
 and do not ask whether they can provide one. When a photo is
 actually needed, a separate, standard request for one is
@@ -60,16 +119,29 @@ was reported and what it suggests; let the automatic request
 
         safety_guidance = state.get("safety_guidance")
         safety_guidance_note = (
-            "Present — will be appended after your message. "
-            "Do not describe or guess its contents."
+            "Yes — handled automatically, do not write "
+            "anything about it yourself."
             if safety_guidance is not None
             and safety_guidance.guidance
-            else "None for this interaction."
+            else "No."
         )
+
+        domain = state.get("domain")
+        domain_note = (
+            domain.value if domain is not None else "unknown"
+        )
+
+        is_first_turn = len(state.get("messages", [])) <= 1
 
         user_prompt = f"""
 User message:
 {state["message"]}
+
+Is this the first message of the conversation?
+{"Yes." if is_first_turn else "No."}
+
+Routed domain (conversation | home | pest_control |
+unsupported): {domain_note}
 
 Home context:
 {state.get("context")}
@@ -83,8 +155,8 @@ Reported observation:
 Assessment:
 {state.get("assessment")}
 
-Safety guidance:
-{safety_guidance_note}
+Is separate safety guidance being sent automatically after
+your message? {safety_guidance_note}
 
 Signals:
 {state.get("signals", [])}
@@ -120,7 +192,30 @@ Learning:
 {state.get("learning")}
 """
 
-        return await self._llm.generate(
+        message = await self._llm.generate(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
         )
+
+        return self._strip_leaked_safety_section(message)
+
+    def _strip_leaked_safety_section(
+        self,
+        message: str,
+    ) -> str:
+        """
+        Removes a safety-guidance-shaped heading (and whatever
+        immediately follows it, up to the next blank line) if the
+        model opened its reply with one despite being told not to.
+        Only strips a match at the very start of the message, so it
+        can't accidentally eat a legitimate later mention.
+        """
+
+        if not message:
+            return message
+
+        return _LEAKED_SAFETY_SECTION.sub(
+            "",
+            message,
+            count=1,
+        ).lstrip()
