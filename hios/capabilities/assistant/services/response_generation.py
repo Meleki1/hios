@@ -1,12 +1,40 @@
 import re
 from hios.capabilities.assistant.graph.state import HomeAssistantState
 from hios.capabilities.assistant.llm.contract import AssistantLLM
+from hios.capabilities.execution.models.action import ActionType
 
 
 _LEAKED_SAFETY_SECTION = re.compile(
-    r"^\s*(safety guidance|safety tips|precautions)\s*:?"
-    r".*?(?:\n\s*\n|\Z)",
-    re.IGNORECASE | re.DOTALL,
+    r"(?:^|\n)\s*(?:safety guidance|safety tips|precautions)\s*:?\s*\n"
+    r"(?:[ \t]*[-•*]?\s*.+(?:\n|$))+",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+_LEAKED_PHOTO_REQUEST_PATTERNS = (
+    re.compile(
+        r"\s*please share (?:the )?image when you(?:'re| are) ready\.?\s*",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\s*(?:could you (?:please )?)?(?:provide|send)(?: me)? "
+        r"(?:an )?(?:image|photo|picture)[^.!?]*[.!?]\s*",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\s*(?:I(?:'ll| will)|we(?:'ll| will)|I) need[^.!?]*"
+        r"visual evidence[^.!?]*[.!?]\s*",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\s*(?:I'd like|I would like)[^.!?]*"
+        r"(?:photo|image|picture|visual evidence)[^.!?]*[.!?]\s*",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\s*(?:share|send)(?: me)? (?:an? )?(?:image|photo|picture)"
+        r"[^.!?]*[.!?]\s*",
+        re.IGNORECASE,
+    ),
 )
 
 class AssistantResponseGenerationService:
@@ -173,14 +201,8 @@ Intent score:
 Maintenance recommendations:
 {state.get("maintenance_recommendations", [])}
 
-Decision:
-{state.get("decision")}
-
-Plan:
-{state.get("plan")}
-
-Execution:
-{state.get("execution")}
+Automatic follow-ups appended after your message (do not duplicate):
+{self._build_automatic_followups_note(state)}
 
 Outcome:
 {state.get("outcome")}
@@ -197,25 +219,120 @@ Learning:
             user_prompt=user_prompt,
         )
 
-        return self._strip_leaked_safety_section(message)
+        return self._sanitize_llm_message(message)
 
-    def _strip_leaked_safety_section(
+    def _build_automatic_followups_note(
+        self,
+        state: HomeAssistantState,
+    ) -> str:
+
+        lines: list[str] = []
+
+        safety_guidance = state.get("safety_guidance")
+        if (
+            safety_guidance is not None
+            and safety_guidance.guidance
+        ):
+            lines.append(
+                "- Safety guidance will be appended after your message."
+            )
+
+        if self._will_append_photo_request(state):
+            lines.append(
+                "- A standard photo request will be appended "
+                "after your message."
+            )
+
+        if not lines:
+            return "None."
+
+        return (
+            "\n".join(lines)
+            + "\n(Do not ask for photos or write safety guidance yourself.)"
+        )
+
+    def _will_append_photo_request(
+        self,
+        state: HomeAssistantState,
+    ) -> bool:
+
+        execution_result = state.get("execution")
+        if execution_result is None:
+            return False
+
+        execution = getattr(
+            execution_result,
+            "execution",
+            None,
+        )
+        if execution is None:
+            actions = getattr(
+                execution_result,
+                "actions",
+                None,
+            )
+        else:
+            actions = getattr(
+                execution,
+                "actions",
+                None,
+            )
+
+        if not actions:
+            return False
+
+        return any(
+            action.action_type == ActionType.IMAGE_REQUEST
+            for action in actions
+        )
+
+    def _sanitize_llm_message(
         self,
         message: str,
     ) -> str:
-        """
-        Removes a safety-guidance-shaped heading (and whatever
-        immediately follows it, up to the next blank line) if the
-        model opened its reply with one despite being told not to.
-        Only strips a match at the very start of the message, so it
-        can't accidentally eat a legitimate later mention.
-        """
 
         if not message:
             return message
 
-        return _LEAKED_SAFETY_SECTION.sub(
-            "",
+        message = self._strip_all_leaked_safety_sections(
             message,
-            count=1,
-        ).lstrip()
+        )
+        message = self._strip_leaked_photo_requests(
+            message,
+        )
+
+        message = re.sub(
+            r"\n{3,}",
+            "\n\n",
+            message,
+        )
+
+        return message.strip()
+
+    def _strip_all_leaked_safety_sections(
+        self,
+        message: str,
+    ) -> str:
+
+        previous = None
+        while previous != message:
+            previous = message
+            message = _LEAKED_SAFETY_SECTION.sub(
+                "",
+                message,
+            )
+
+        return message.strip()
+
+    def _strip_leaked_photo_requests(
+        self,
+        message: str,
+    ) -> str:
+
+        for pattern in _LEAKED_PHOTO_REQUEST_PATTERNS:
+            message = pattern.sub(
+                "",
+                message,
+            )
+
+        return message.strip()
