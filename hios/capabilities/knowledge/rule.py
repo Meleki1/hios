@@ -44,17 +44,11 @@ class RuleKnowledgeCapability(KnowledgeCapability):
             if not rule.enabled:
                 continue
 
-            print("\n=== RULE EVALUATION ===")
-            print("rule:", rule.name)
-            print("condition:", rule.condition)
-            print("knowledge_input:", knowledge_input)
 
             evaluation = self._evaluator.evaluate(
                 rule.condition,
                 knowledge_input,
             )
-            print("matched:", evaluation.matched)
-            print("evaluation:", evaluation)
             
             if evaluation.matched:
                 facts.update(rule.facts)
@@ -69,11 +63,6 @@ class RuleKnowledgeCapability(KnowledgeCapability):
                         ],
                     )
                 )
-        print("\n=== FINAL FACTS ===")
-        print(sorted(facts))
-
-        print("\n=== FINAL EVIDENCE COUNT ===")
-        print(len(evidence))
         
         return KnowledgeResult(
             facts=sorted(facts),

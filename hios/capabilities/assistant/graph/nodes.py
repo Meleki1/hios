@@ -38,6 +38,7 @@ def create_nodes(
     image_diagnosis_service=None,
     outreach_policy=None,
     event_publisher=None,
+    environmental_service=None,
 ):
 
     async def assemble_context(
@@ -410,12 +411,39 @@ def create_nodes(
 
         timeline = state.get("timeline", [])
 
+        context = state.get("context")
+
+        property_profile = (
+            context.property_profile
+            if context is not None
+            else None
+        )
+
+        environmental_observation = None
+
+        if (
+            environmental_service is not None
+            and property_profile is not None
+            and property_profile.latitude is not None
+            and property_profile.longitude is not None
+        ):
+            environmental_observation = (
+                await environmental_service.get_observation(
+                    latitude=property_profile.latitude,
+                    longitude=property_profile.longitude,
+                )
+            )
+
         intelligence_state = {
             "subject_id": state["subject_id"],
             "target": "home_maintenance",
             "horizon_days": 30,
             "explicit_intents": explicit_intents,
             "timeline": timeline,
+            "property_profile": property_profile,
+            "environmental_observation": (
+                environmental_observation
+            ),
         }
 
         result = await intelligence_graph.ainvoke(
@@ -446,7 +474,7 @@ def create_nodes(
                 [],
             ),
             "risk": result.get(
-                "risk",
+                "risk_assessment",
             ),
             "intent_score": result.get(
                 "intent_score",

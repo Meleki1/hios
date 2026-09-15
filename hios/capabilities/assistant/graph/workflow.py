@@ -21,12 +21,35 @@ from hios.capabilities.assistant.services.interaction_understanding import Assis
 from hios.capabilities.assistant.models.assistant_domain import AssistantDomain
 
 
-def route_after_understanding(
+"""def route_after_understanding(
     state: HomeAssistantState,
 ) -> str:
 
     if state.get("domain") == AssistantDomain.PEST_CONTROL:
         return "dispatch_domain"
+
+    return "intelligence"
+"""
+
+def route_after_understanding(
+    state: HomeAssistantState,
+) -> str:
+    """
+    Every domain runs through `intelligence` before
+    `dispatch_domain` so signal collection, risk assessment,
+    intent scoring, and prediction happen on every turn.
+
+    Previously PEST_CONTROL skipped straight to
+    dispatch_domain, bypassing `intelligence` entirely -- which
+    meant the Intent Score / Risk Engine / Prediction pipeline
+    never ran for the one domain that's actually live today.
+    It ran only for "home"/"conversation"/"unsupported" turns,
+    whose replies are just scope-decline messages that never use
+    signals/risk/prediction for anything. This function is kept
+    (rather than wiring a single unconditional edge) so a
+    domain-specific bypass can be reintroduced deliberately in
+    the future without having to touch the graph wiring again.
+    """
 
     return "intelligence"
 

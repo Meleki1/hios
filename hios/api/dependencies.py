@@ -498,6 +498,7 @@ def get_home_assistant_graph(
             get_interaction_understanding_service()
         ),
         image_diagnosis_service=get_image_diagnosis_service(),
+        environmental_service=get_environmental_service(),
     )
     
 def get_home_assistant_chat(
