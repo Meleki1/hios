@@ -70,6 +70,7 @@ def build_home_assistant_graph(
     outreach=None,
     outreach_policy=None,
     event_publisher=None,
+    environmental_service=None,
 ):
 
     nodes = create_nodes(
@@ -86,6 +87,7 @@ def build_home_assistant_graph(
         outreach=outreach,
         outreach_policy=outreach_policy,
         event_publisher=event_publisher,
+        environmental_service=environmental_service,
         action_response_builder=AssistantActionResponseBuilder()
     )
 

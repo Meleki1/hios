@@ -427,12 +427,15 @@ def create_nodes(
             and property_profile.latitude is not None
             and property_profile.longitude is not None
         ):
-            environmental_observation = (
-                await environmental_service.get_observation(
-                    latitude=property_profile.latitude,
-                    longitude=property_profile.longitude,
+            try:
+                environmental_observation = (
+                    await environmental_service.get_observation(
+                        latitude=property_profile.latitude,
+                        longitude=property_profile.longitude,
+                    )
                 )
-            )
+            except Exception:
+                environmental_observation = None
 
         intelligence_state = {
             "subject_id": state["subject_id"],

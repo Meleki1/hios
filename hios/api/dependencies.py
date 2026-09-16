@@ -583,4 +583,3 @@ def get_interaction_understanding_service(
     return AssistantInteractionUnderstandingService(
         llm=get_assistant_llm(),
     )
-
