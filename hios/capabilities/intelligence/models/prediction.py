@@ -4,6 +4,7 @@ from hios.shared.base import HIOSModel
 from hios.capabilities.intelligence.models.intent_score import (
     IntentScore,
 )
+from datetime import datetime, timezone
 
 
 class Prediction(HIOSModel):
@@ -25,4 +26,7 @@ class Prediction(HIOSModel):
 
     evidence: list[str] = Field(
         default_factory=list,
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
     )

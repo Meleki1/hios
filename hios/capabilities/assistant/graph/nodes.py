@@ -265,7 +265,7 @@ def create_nodes(
             )
          )
 
-        maintenance_recommendations = state.get(
+        """maintenance_recommendations = state.get(
             "maintenance_recommendations",
             [],
         )
@@ -277,42 +277,11 @@ def create_nodes(
                 f"I recommend scheduling "
                 f"{recommendation.task}. "
                 f"{recommendation.reason}"
-            )
-
-            message = _append_safety_guidance(
-                message,
-                state.get("safety_guidance"),
-            )
-
-            message = _append_photo_request(
-                message,
-                photo_request,
-            )
-
-            return {
-                "response": HomeAssistantResponse(
-                    message=message,
-                    conversation_id=state.get(
-                        "conversation_id",
-                    ),
-                    capability="maintenance",
-                    metadata={
-                        "task": recommendation.task,
-                        "maintenance_type": (
-                            recommendation.maintenance_type
-                        ),
-                        "priority": recommendation.priority,
-                    },
-                ),
-                "messages": [
-                    AIMessage(
-                        content=message,
-                    )
-                ],
-            }
+            )"""
 
         message = await response_generation_service.generate(
             state=state,
+            photo_request_pending=photo_request is not None,
         )
 
         message = _append_safety_guidance(
@@ -437,11 +406,43 @@ def create_nodes(
             except Exception:
                 environmental_observation = None
 
+        previous_intent_history = state.get(
+            "explicit_intent_history",
+            [],
+        )
+
+        explicit_intent_history = list(
+            previous_intent_history,
+        )
+
+        for intent in explicit_intents:
+            if intent not in explicit_intent_history:
+                explicit_intent_history.append(intent)
+
+        platform_behaviours = None
+
+        past_visit_ids = {
+            entry.resource_id
+            for entry in timeline
+            if entry.event_type == "conversation"
+            and entry.event_name == "message_received"
+            and entry.resource_id is not None
+        }
+
+        if past_visit_ids:
+            platform_behaviours = {
+                "return_visits": str(
+                    len(past_visit_ids),
+                ),
+            }
+
         intelligence_state = {
             "subject_id": state["subject_id"],
             "target": "home_maintenance",
             "horizon_days": 30,
             "explicit_intents": explicit_intents,
+            "interactions": explicit_intent_history,
+            "platform_behaviours": platform_behaviours,
             "timeline": timeline,
             "property_profile": property_profile,
             "environmental_observation": (
@@ -461,14 +462,22 @@ def create_nodes(
         maintenance_recommendations = []
 
         if maintenance_intelligence is not None:
-            maintenance_recommendations = (
+            maintenance_result = (
                 await maintenance_intelligence.analyze(
                     subject_id=state["subject_id"],
                     home_id=state["home_id"],
                     timeline=timeline,
                     maintenance_records=maintenance_records,
                     explicit_intents=explicit_intents,
+                    property_profile=property_profile,
+                    environmental_observation=(
+                        environmental_observation
+                    ),
                 )
+            )
+
+            maintenance_recommendations = (
+                maintenance_result.recommendations
             )
 
         return {

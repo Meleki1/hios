@@ -47,6 +47,7 @@ class HomeAssistantState(TypedDict, total=False):
     communicated_safety_guidance: list[str]
     maintenance_recommendations: list[MaintenanceRecommendation]
     maintenance_records: list[object]
+    explicit_intent_history: list[str]
 
     outreach_decision: OutreachDecision | None
     outreach_result: OutreachResult | None

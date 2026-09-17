@@ -1,6 +1,7 @@
+from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import Float, Integer, JSON, String
+from sqlalchemy import DateTime, Float, Integer, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from hios.db.base import Base
@@ -52,5 +53,11 @@ class PredictionRecord(Base):
     intent_score: Mapped[dict] = mapped_column(
         JSON,
         default=dict,
+        nullable=False,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )

@@ -134,6 +134,24 @@ from hios.capabilities.home.repositories.postgres_home_state_repository import (
 from hios.capabilities.maintenance.postgres.maintenance_repository import (
     PostgresMaintenanceRepository,
 )
+from hios.capabilities.maintenance.services.maintenance_intelligence_service import (
+    MaintenanceIntelligenceService,
+)
+from hios.capabilities.maintenance.intelligence.maintenance_history import (
+    MaintenanceHistorySignalExtractor,
+)
+from hios.capabilities.maintenance.intelligence.maintenance_pattern_detector import (
+    MaintenancePatternDetector,
+)
+from hios.capabilities.maintenance.services.maintenance_recommendation_scheduler import (
+    MaintenanceRecommendationScheduler,
+)
+from hios.capabilities.maintenance.services.maintenance_timeline_planner import (
+    MaintenanceTimelinePlanner,
+)
+from hios.capabilities.intelligence.intelligence_pipeline import (
+    IntelligencePipeline,
+)
 from hios.capabilities.memory.service import MemoryService
 from hios.capabilities.memory.formation import MemoryFormation
 from hios.capabilities.memory.rule_based_formation import RuleBasedMemoryFormation
@@ -367,6 +385,25 @@ def get_intelligence_graph(
         risk_signal_adapter=get_risk_signal_adapter(),
     )
 
+def get_intelligence_pipeline(
+    session: AsyncSession,
+) -> IntelligencePipeline:
+    return IntelligencePipeline(
+        signal_collection_service=get_signal_collection_service(),
+        intelligence_service=get_intelligence_service(session),
+    )
+
+def get_maintenance_intelligence_service(
+    session: AsyncSession,
+) -> MaintenanceIntelligenceService:
+    return MaintenanceIntelligenceService(
+        intelligence_pipeline=get_intelligence_pipeline(session),
+        history_extractor=MaintenanceHistorySignalExtractor(),
+        pattern_detector=MaintenancePatternDetector(),
+        recommendation_scheduler=MaintenanceRecommendationScheduler(),
+        timeline_planner=MaintenanceTimelinePlanner(),
+    )
+
 def get_home_repository(
     session: AsyncSession,
 ) -> PostgresHomeRepository:
@@ -499,6 +536,9 @@ def get_home_assistant_graph(
         ),
         image_diagnosis_service=get_image_diagnosis_service(),
         environmental_service=get_environmental_service(),
+        maintenance_intelligence=get_maintenance_intelligence_service(
+            session,
+        ),
     )
     
 def get_home_assistant_chat(
