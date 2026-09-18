@@ -281,7 +281,6 @@ def create_nodes(
 
         message = await response_generation_service.generate(
             state=state,
-            photo_request_pending=photo_request is not None,
         )
 
         message = _append_safety_guidance(
