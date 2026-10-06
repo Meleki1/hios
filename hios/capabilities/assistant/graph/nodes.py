@@ -18,6 +18,7 @@ from hios.capabilities.assistant.services.interaction_understanding import Assis
 from hios.capabilities.assistant.models.interaction_routing import InteractionRoutingRequest
 from langchain_core.messages import HumanMessage, AIMessage
 from hios.capabilities.execution.models.action import ActionType
+from hios.capabilities.pest_control.referral.models import PestReferralPhase
 
 
 
@@ -39,6 +40,7 @@ def create_nodes(
     outreach_policy=None,
     event_publisher=None,
     environmental_service=None,
+    pest_referral_handler=None,
 ):
 
     async def assemble_context(
@@ -50,6 +52,19 @@ def create_nodes(
             subject_id=state["subject_id"],
             message=state["message"],
         )
+
+        if event_publisher is not None:
+            await event_publisher.publish(
+                BaseEvent(
+                    event_type="conversation",
+                    event_name="message_received",
+                    state="observed",
+                    description=state["message"],
+                    subject_id=state["subject_id"],
+                    resource_id=state.get("conversation_id"),
+                    resource_type="conversation",
+                )
+            )
 
         return {
             "context": context,
@@ -265,23 +280,26 @@ def create_nodes(
             )
          )
 
-        """maintenance_recommendations = state.get(
-            "maintenance_recommendations",
-            [],
+        referral_message = state.get(
+            "pest_referral_message",
+        )
+        replace_referral = state.get(
+            "pest_referral_replace_response",
+            False,
         )
 
-        if maintenance_recommendations:
-            recommendation = maintenance_recommendations[0]
-
-            message = (
-                f"I recommend scheduling "
-                f"{recommendation.task}. "
-                f"{recommendation.reason}"
-            )"""
-
-        message = await response_generation_service.generate(
-            state=state,
-        )
+        if referral_message and replace_referral:
+            message = referral_message
+        else:
+            message = await response_generation_service.generate(
+                state=state,
+            )
+            if referral_message:
+                message = (
+                    f"{message}\n\n{referral_message}"
+                    if message
+                    else referral_message
+                )
 
         message = _append_safety_guidance(
             message,
@@ -312,6 +330,20 @@ def create_nodes(
                 ),
                 "requires_user_input": True,
             }
+
+        pest_referral = state.get("pest_referral")
+        if pest_referral is not None and pest_referral.phase not in {
+            PestReferralPhase.INACTIVE,
+            PestReferralPhase.SUBMITTED,
+            PestReferralPhase.DECLINED,
+        }:
+            metadata = {
+                **metadata,
+                "pest_referral_phase": pest_referral.phase.value,
+                "requires_user_input": True,
+            }
+            if capability is None:
+                capability = "pest_control_referral"
 
         return {
             "response": HomeAssistantResponse(
@@ -498,6 +530,43 @@ def create_nodes(
             ),
         }
 
+    async def handle_pest_referral(
+        state: HomeAssistantState,
+    ) -> dict:
+
+        if pest_referral_handler is None:
+            return {
+                "pest_referral_message": None,
+                "pest_referral_replace_response": False,
+            }
+
+        domain = state.get("domain")
+        if domain != AssistantDomain.PEST_CONTROL:
+            return {
+                "pest_referral_message": None,
+                "pest_referral_replace_response": False,
+            }
+
+        turn = await pest_referral_handler.advance(
+            state=state,
+        )
+
+        updates: dict = {
+            "pest_referral": turn.referral,
+            "pest_referral_replace_response": (
+                turn.replace_assistant_response
+            ),
+        }
+
+        if turn.assistant_message is not None:
+            updates["pest_referral_message"] = (
+                turn.assistant_message
+            )
+        else:
+            updates["pest_referral_message"] = None
+
+        return updates
+
     async def decide_outreach(
         state: HomeAssistantState,
     ) -> dict:
@@ -626,6 +695,7 @@ def create_nodes(
         "route_interaction": route_interaction,
         "understand_interaction": understand_interaction,
         "intelligence": intelligence,
+        "handle_pest_referral": handle_pest_referral,
         "decide_outreach": decide_outreach,
         "execute_outreach": execute_outreach,
         "dispatch_domain": dispatch_domain,

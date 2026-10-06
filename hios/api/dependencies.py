@@ -23,6 +23,12 @@ from hios.capabilities.local_activity.clients.planning_data_http_client import (
 from hios.capabilities.property.providers.homedata_http import (
     HttpHomedataClient,
 )
+from hios.capabilities.property.providers.homedata_address_http import (
+    HttpHomedataAddressClient,
+)
+from hios.capabilities.property.address_service import (
+    AddressResolutionService,
+)
 from hios.capabilities.local_activity.providers.planning_application_adapter import (
     PlanningApplicationAdapter,
 )
@@ -152,6 +158,16 @@ from hios.capabilities.maintenance.services.maintenance_timeline_planner import 
 from hios.capabilities.intelligence.intelligence_pipeline import (
     IntelligencePipeline,
 )
+from hios.capabilities.outreach.factory import (
+    build_outreach_capability,
+)
+from hios.capabilities.outreach.policy import (
+    DefaultOutreachPolicy,
+)
+from hios.core.events.event_publisher import EventPublisher
+from hios.capabilities.timeline.listeners.timeline_listener import (
+    TimelineListener,
+)
 from hios.capabilities.memory.service import MemoryService
 from hios.capabilities.memory.formation import MemoryFormation
 from hios.capabilities.memory.rule_based_formation import RuleBasedMemoryFormation
@@ -192,6 +208,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from hios.packs.pest_control.builder import (
     create as create_pest_control_hios,
 )
+from hios.capabilities.consent.consent_service import ConsentService
+from hios.capabilities.consent.consent_workflow import ConsentWorkflow
+from hios.capabilities.consent.postgres.repository.consent_repository import (
+    PostgresConsentRepository,
+)
+from hios.capabilities.pest_control.referral.contact_form_submitter import (
+    PlaywrightPestControlContactFormSubmitter,
+)
+from hios.capabilities.pest_control.referral.handler import (
+    PestControlReferralHandler,
+)
 from hios.capabilities.assistant.telegram.client import (
     TelegramClient,
 )
@@ -200,6 +227,9 @@ from hios.capabilities.assistant.telegram.webhook import (
 )
 from hios.capabilities.assistant.telegram.provisioning import (
     TelegramProvisioningService,
+)
+from hios.capabilities.assistant.telegram.postgres.telegram_identity_repository import (
+    PostgresTelegramIdentityRepository,
 )
 from hios.capabilities.home.services.home_service import (
     HomeService,
@@ -272,6 +302,14 @@ def get_property_service() -> PropertyService:
 
     return PropertyService(
         provider=provider,
+    )
+
+def get_address_resolution_service() -> AddressResolutionService:
+    return AddressResolutionService(
+        client=HttpHomedataAddressClient(
+            api_key=get_settings().homedata_api_key,
+            client=get_http_client(),
+        ),
     )
 
 def get_environmental_service() -> EnvironmentalService:
@@ -472,6 +510,25 @@ def get_timeline_service(
         ),
     )
 
+def get_event_publisher(
+    session: AsyncSession,
+) -> EventPublisher:
+    publisher = EventPublisher()
+
+    publisher.subscribe(
+        TimelineListener(
+            service=get_timeline_service(session),
+        ),
+    )
+
+    return publisher
+
+def get_outreach_capability():
+    return build_outreach_capability(
+        get_settings(),
+    )
+
+
 def get_home_property_service(
     session: AsyncSession,
 ) -> HomePropertyService:
@@ -498,6 +555,31 @@ def get_home_context_assembler(
 def get_hios():
     return create_pest_control_hios(
         llm=get_assistant_llm(),
+    )
+
+
+def get_consent_workflow(
+    session: AsyncSession,
+) -> ConsentWorkflow:
+    return ConsentWorkflow(
+        consent_service=ConsentService(),
+        consent_repository=PostgresConsentRepository(
+            session=session,
+        ),
+        event_publisher=None,
+    )
+
+
+def get_pest_referral_handler(
+    session: AsyncSession,
+) -> PestControlReferralHandler:
+    settings = get_settings()
+    return PestControlReferralHandler(
+        contact_url=settings.pest_control_contact_url,
+        contact_form_submitter=PlaywrightPestControlContactFormSubmitter(
+            headless=settings.pest_control_playwright_headless,
+        ),
+        consent_workflow=get_consent_workflow(session),
     )
 
 def get_checkpointer(request: Request):
@@ -537,6 +619,9 @@ def get_home_assistant_graph(
         image_diagnosis_service=get_image_diagnosis_service(),
         environmental_service=get_environmental_service(),
         maintenance_intelligence=get_maintenance_intelligence_service(
+            session,
+        ),
+        pest_referral_handler=get_pest_referral_handler(
             session,
         ),
     )
@@ -595,8 +680,9 @@ def get_telegram_webhook_handler(
     provisioning_service = TelegramProvisioningService(
         home_service=home_service,
         home_repository=home_repository,
-        subject_id=settings.telegram_default_subject_id,
-        home_id=settings.telegram_default_home_id,
+        identity_repository=PostgresTelegramIdentityRepository(
+            session=session,
+        ),
     )
 
     return TelegramWebhookHandler(

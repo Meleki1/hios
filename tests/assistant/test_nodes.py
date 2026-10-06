@@ -7,6 +7,9 @@ from hios.capabilities.assistant.models.assistant_domain import (
 from hios.capabilities.assistant.models.home_context import (
     HomeContext,
 )
+from hios.capabilities.timeline.models.timeline_entry import (
+    TimelineEntry,
+)
 from hios.capabilities.assistant.models.assistant_response import (
     HomeAssistantResponse,
 )
@@ -758,6 +761,72 @@ async def test_intelligence_node_receives_explicit_intents():
         intelligence_graph.received_state["understanding"]
         == understanding
     )"""
+
+
+@pytest.mark.asyncio
+async def test_intelligence_node_counts_past_visits_not_distinct_ids():
+    # Regression test for the return_visits fix: platform_behaviours
+    # used to dedupe timeline entries by resource_id, but resource_id
+    # is conversation_id, which on the real (Telegram) channel is
+    # permanent per user for the life of the chat -- so a distinct-id
+    # count could never rise above 1, and return_visits could never
+    # cross RuleBasedIntentScorer's own MODERATE_THRESHOLD of 2.
+    # Three prior "message_received" entries sharing one
+    # conversation_id (exactly what a real returning Telegram user's
+    # timeline looks like) must now be counted as 3, not 1.
+
+    intelligence_graph = FakeIntelligenceGraph()
+
+    nodes = create_nodes(
+        context_assembler=FakeContextAssembler(),
+        router=FakeRouter(),
+        hios=FakeHIOS(),
+        intelligence_graph=intelligence_graph,
+        action_response_builder=AssistantActionResponseBuilder(),
+        response_generation_service=(
+            FakeResponseGenerationService()
+        ),
+        interaction_understanding_service=(
+            FakeInteractionUnderstandingService()
+        ),
+    )
+
+    timeline = [
+        TimelineEntry(
+            subject_id="subject-123",
+            event_type="conversation",
+            event_name="message_received",
+            state="observed",
+            description="hi",
+            resource_id="conv-abc",
+            resource_type="conversation",
+        )
+        for _ in range(3)
+    ]
+
+    state = {
+        "subject_id": "subject-123",
+        "home_id": "home-123",
+        "message": "I'm back again.",
+        "timeline": timeline,
+        "understanding": (
+            InteractionUnderstanding(
+                explicit_intents=[],
+            )
+        ),
+    }
+
+    await nodes["intelligence"](
+        state,
+    )
+
+    assert (
+        intelligence_graph.received_state[
+            "platform_behaviours"
+        ]
+        == {"return_visits": "3"}
+    )
+
 
 @pytest.mark.asyncio
 async def test_build_response_returns_image_request_for_image_action():

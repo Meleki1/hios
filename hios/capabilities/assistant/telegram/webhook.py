@@ -51,8 +51,12 @@ class TelegramWebhookHandler:
 
         chat_id = message.chat.id
 
+        telegram_user_id = str(message.from_.id)
+
         subject_id, home_id = (
-            await self._provisioning_service.provision()
+            await self._provisioning_service.provision(
+                telegram_user_id,
+            )
         )
 
         image = None

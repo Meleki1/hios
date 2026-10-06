@@ -148,6 +148,20 @@ class MaintenanceIntelligenceService:
                     )
                 )
         return recommendations
+
+    def _priority_for_pattern(
+        self,
+        pattern,
+    ) -> str:
+
+        if pattern.occurrences >= 5:
+            return "critical"
+
+        if pattern.occurrences >= 3:
+            return "high"
+
+        return "normal"
+
     def _should_recommend(
         self,
         *,

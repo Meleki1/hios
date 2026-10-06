@@ -33,16 +33,23 @@ class Settings(BaseSettings):
     email_from: str | None = None
     email_use_tls: bool = True
 
-    hios_test_email: str
+    hios_test_email: str | None = None
 
     homedata_api_key: str
 
     telegram_bot_token: str
     telegram_webhook_secret: str
-    telegram_default_subject_id: str
-    telegram_default_home_id: str
+    telegram_default_subject_id: str | None = None
+    telegram_default_home_id: str | None = None
     hios_bootstrap_secret: str
-    
+
+    pest_control_contact_url: str = (
+        "https://veritexpestcontrol.com/"
+    )
+    # Set to false locally to open a visible Chromium window while filling
+    # the partner contact form (replace pest_control_contact_url when ready).
+    pest_control_playwright_headless: bool = True
+
 
 
 @lru_cache

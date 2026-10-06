@@ -45,6 +45,16 @@ async def bootstrap_test_home(
             detail="Invalid bootstrap secret",
         )
 
+    if settings.telegram_default_home_id is None:
+        raise HTTPException(
+            status_code=410,
+            detail=(
+                "This endpoint is obsolete: Telegram homes are now "
+                "created automatically per user on first message. "
+                "See TelegramProvisioningService."
+            ),
+        )
+
     home_repository: HomeRepository = (
         PostgresHomeRepository(
             session=session,

@@ -15,5 +15,81 @@ services:
     volumes:
       - hios_postgres_data:/var/lib/postgresql/data
 
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: hios-kafka
+    restart: unless-stopped
+
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: >-
+        PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: >-
+        CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      CLUSTER_ID: hios-local-kraft-cluster-01
+
+    ports:
+      - "9094:9094"
+
+    volumes:
+      - hios_kafka_data:/var/lib/kafka/data
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: hios-kafka-ui
+    restart: unless-stopped
+    depends_on:
+      - kafka
+
+    environment:
+      KAFKA_CLUSTERS_0_NAME: hios-local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+
+    ports:
+      - "8081:8080"
+
+  airflow:
+    image: apache/airflow:2.10.4-python3.12
+    container_name: hios-airflow
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    command: standalone
+
+    env_file:
+      - path: .env
+        required: false
+
+    environment:
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/hios/airflow/dags
+      PYTHONPATH: /opt/hios
+      DATABASE_URL: postgresql+asyncpg://postgres:2511@postgres:5432/hios_dev
+      _PIP_ADDITIONAL_REQUIREMENTS: >-
+        sqlalchemy>=2.0.51 asyncpg>=0.31.0 psycopg[binary]>=3.3.4
+        pydantic>=2.11 pydantic-settings>=2.14.2 httpx>=0.28.1
+        openai>=2.53.0 pgvector>=0.5.0
+
+    ports:
+      - "8080:8080"
+
+    volumes:
+      - .:/opt/hios:ro
+      - hios_airflow_data:/opt/airflow
+
+  
+
 volumes:
   hios_postgres_data:
+  hios_kafka_data:
+  hios_airflow_data:

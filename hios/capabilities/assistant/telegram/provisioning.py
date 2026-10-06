@@ -1,5 +1,11 @@
 from uuid import uuid4
 
+from hios.capabilities.assistant.telegram.models import (
+    TelegramIdentity,
+)
+from hios.capabilities.assistant.telegram.telegram_identity_repository import (
+    TelegramIdentityRepository,
+)
 from hios.capabilities.home.schemas.home_creation import (
     CreateHomeRequest,
     HomeInformationInput,
@@ -9,38 +15,41 @@ from hios.capabilities.home.repositories.home_repository import HomeRepository
 
 
 class TelegramProvisioningService:
+
     def __init__(
         self,
         home_service: HomeService,
         home_repository: HomeRepository,
-        *,
-        subject_id: str | None = None,
-        home_id: str | None = None,
+        identity_repository: TelegramIdentityRepository,
     ) -> None:
         self._home_service = home_service
         self._home_repository = home_repository
-        self._subject_id = subject_id
-        self._home_id = home_id
+        self._identity_repository = identity_repository
 
-    async def provision(self) -> tuple[str, str]:
+    async def provision(
+        self,
+        telegram_user_id: str,
+    ) -> tuple[str, str]:
 
-        if self._subject_id and self._home_id:
-            home = await self._home_repository.get(
-                self._home_id,
+        existing = (
+            await self._identity_repository.get_by_telegram_user_id(
+                telegram_user_id,
             )
+        )
 
-            if home is not None:
-                return self._subject_id, home.id
+        if existing is not None:
+            return existing.subject_id, existing.home_id
 
-        subject_id = self._subject_id or str(uuid4())
+        subject_id = str(uuid4())
 
         home = await self._home_service.create(
             subject_id=subject_id,
             request=CreateHomeRequest(
-                name="Telegram Test Home",
+                name="Telegram Home",
                 home_type="residential",
                 description=(
-                    "Temporary home created for Telegram integration testing."
+                    "Home created automatically from a Telegram "
+                    "conversation."
                 ),
                 information=HomeInformationInput(
                     country="Nigeria",
@@ -48,6 +57,13 @@ class TelegramProvisioningService:
                     address="Telegram Test Address",
                     postcode=None,
                 ),
+            ),
+        )
+        await self._identity_repository.save(
+            TelegramIdentity(
+                telegram_user_id=telegram_user_id,
+                subject_id=subject_id,
+                home_id=home.id,
             ),
         )
 

@@ -33,3 +33,8 @@ class TelegramMessage(BaseModel):
 class TelegramUpdate(BaseModel):
     update_id: int
     message: TelegramMessage | None = None
+
+class TelegramIdentity(BaseModel):
+    telegram_user_id: str
+    subject_id: str
+    home_id: str

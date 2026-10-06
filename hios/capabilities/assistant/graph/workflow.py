@@ -71,6 +71,7 @@ def build_home_assistant_graph(
     outreach_policy=None,
     event_publisher=None,
     environmental_service=None,
+    pest_referral_handler=None,
 ):
 
     nodes = create_nodes(
@@ -88,7 +89,8 @@ def build_home_assistant_graph(
         outreach_policy=outreach_policy,
         event_publisher=event_publisher,
         environmental_service=environmental_service,
-        action_response_builder=AssistantActionResponseBuilder()
+        action_response_builder=AssistantActionResponseBuilder(),
+        pest_referral_handler=pest_referral_handler,
     )
 
     graph = StateGraph(
@@ -117,6 +119,11 @@ def build_home_assistant_graph(
     graph.add_node(
         "diagnose_image",
         nodes["diagnose_image"],
+    )
+
+    graph.add_node(
+        "handle_pest_referral",
+        nodes["handle_pest_referral"],
     )
 
     graph.add_node(
@@ -185,6 +192,11 @@ def build_home_assistant_graph(
 
     graph.add_edge(
         "dispatch_domain",
+        "handle_pest_referral",
+    )
+
+    graph.add_edge(
+        "handle_pest_referral",
         "decide_outreach",
     )
 

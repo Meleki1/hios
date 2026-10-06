@@ -11,6 +11,9 @@ from hios.capabilities.assistant.models.interaction_routing import InteractionRo
 from hios.capabilities.execution.capability import ExecutionResult
 from hios.capabilities.pest_control.models.observation import PestObservation
 from hios.capabilities.pest_control.models.assessment import PestAssessment
+from hios.capabilities.pest_control.referral.models import (
+    PestControlReferralState,
+)
 from hios.capabilities.safety.contract.result import SafetyGuidanceResult
 from hios.capabilities.goals.contract.result import GoalResult
 from langgraph.graph.message import add_messages
@@ -41,6 +44,9 @@ class HomeAssistantState(TypedDict, total=False):
 
     observation: PestObservation | None
     assessment: PestAssessment | None
+    pest_referral: PestControlReferralState | None
+    pest_referral_message: str | None
+    pest_referral_replace_response: bool
     safety_guidance: SafetyGuidanceResult | None
     goals: GoalResult | None
 

@@ -23,6 +23,22 @@ dependencies = [
     "sqlalchemy>=2.0.51",
     "uvicorn[standard]>=0.52.4",
     "langgraph-checkpoint-postgres>=2.0.0",
+    "apache-airflow>=3.2.2",
+]
+
+[project.optional-dependencies]
+# Only needed for KafkaEventPublisherAdapter (hios/core/events/
+# kafka_event_publisher.py), an opt-in local dev/testing scaffold --
+# not installed by default, not needed by production (Render has no
+# Kafka broker). Install with `uv sync --extra kafka` or
+# `pip install -e .[kafka]`.
+kafka = [
+    "aiokafka>=0.11",
+]
+
+# Playwright contact-form submission for pest control partner outreach.
+browser = [
+    "playwright>=1.49",
 ]
 
 

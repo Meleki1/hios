@@ -19,12 +19,14 @@ class BasicPredictionEngine(PredictionEngine):
         intent_score: IntentScore,
     ) -> Prediction:
 
+        probability = intent_score.score / 100.0
+
         return Prediction(
             subject_id=subject_id,
             target=target,
             horizon_days=horizon_days,
             intent_score=intent_score,
-            probability=None,
+            probability=probability,
             confidence=intent_score.confidence,
             evidence=[
                 signal.value
