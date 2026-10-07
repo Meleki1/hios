@@ -7,6 +7,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 from hios.db.base import Base
 
 
+
+
 class TelegramIdentityRecord(Base):
     __tablename__ = "telegram_identities"
 
