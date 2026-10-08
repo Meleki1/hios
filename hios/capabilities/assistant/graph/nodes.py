@@ -301,20 +301,10 @@ def create_nodes(
                     else referral_message
                 )
 
-        pest_referral_for_safety = state.get("pest_referral")
-        skip_safety_guidance = replace_referral or (
-            pest_referral_for_safety is not None
-            and pest_referral_for_safety.phase
-            not in {
-                PestReferralPhase.INACTIVE,
-            }
+        message = _append_safety_guidance(
+            message,
+            state.get("safety_guidance"),
         )
-
-        if not skip_safety_guidance:
-            message = _append_safety_guidance(
-                message,
-                state.get("safety_guidance"),
-            )
 
         message = _append_photo_request(
             message,
