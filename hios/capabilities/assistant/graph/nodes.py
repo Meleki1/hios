@@ -120,9 +120,21 @@ def create_nodes(
         )
         
 
+        referral = state.get("pest_referral")
+        referral_collecting_details = (
+            referral is not None
+            and referral.phase
+            in {
+                PestReferralPhase.AWAITING_CONSENT,
+                PestReferralPhase.AWAITING_CONTACT_DETAILS,
+                PestReferralPhase.AWAITING_SUBMIT_CONFIRMATION,
+            }
+        )
+
         if (
             domain == AssistantDomain.PEST_CONTROL
             and not is_meta_question
+            and not referral_collecting_details
         ):
 
             previously = state.get(
@@ -301,15 +313,19 @@ def create_nodes(
                     else referral_message
                 )
 
-        message = _append_safety_guidance(
-            message,
-            state.get("safety_guidance"),
-        )
+        if not state.get(
+            "pest_referral_replace_response",
+            False,
+        ):
+            message = _append_safety_guidance(
+                message,
+                state.get("safety_guidance"),
+            )
 
-        message = _append_photo_request(
-            message,
-            photo_request,
-        )
+            message = _append_photo_request(
+                message,
+                photo_request,
+            )
 
         domain = state.get("domain")
 

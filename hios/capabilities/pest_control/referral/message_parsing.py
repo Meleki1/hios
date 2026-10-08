@@ -108,6 +108,23 @@ def extract_address(message: str) -> str | None:
     return None
 
 
+def _contact_segments(message: str) -> list[str]:
+    parts: list[str] = []
+    for line in message.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if "," in line:
+            parts.extend(
+                segment.strip()
+                for segment in line.split(",")
+                if segment.strip()
+            )
+        else:
+            parts.append(line)
+    return parts
+
+
 def extract_name(message: str) -> str | None:
     normalized = _normalize(message)
     for prefix in (
@@ -160,5 +177,25 @@ def extract_name(message: str) -> str | None:
             words = first_line.split()
             if 2 <= len(words) <= 5:
                 return first_line
+
+    for segment in _contact_segments(message):
+        if extract_email(segment) or extract_phone(segment):
+            continue
+        segment_norm = _normalize(segment)
+        if any(
+            segment_norm.startswith(label)
+            for label in (
+                "email:",
+                "phone:",
+                "address:",
+                "service address:",
+                "full name:",
+                "name:",
+            )
+        ):
+            continue
+        words = segment.split()
+        if 2 <= len(words) <= 5:
+            return segment
 
     return None

@@ -9,6 +9,7 @@ from hios.capabilities.pest_control.referral.contact_form_submitter import (
     PestControlContactFormSubmitter,
 )
 from hios.capabilities.pest_control.referral.message_parsing import (
+    _contact_segments,
     extract_address,
     extract_email,
     extract_name,
@@ -181,7 +182,9 @@ class PestControlReferralHandler:
         if address:
             contact_updates["address"] = address
         elif _looks_like_address_update(message, contact):
-            contact_updates["address"] = message.strip()
+            address_candidate = _address_from_contact_message(message)
+            if address_candidate:
+                contact_updates["address"] = address_candidate
 
         if contact_updates:
             contact = contact.model_copy(update=contact_updates)
@@ -431,6 +434,40 @@ def _submit_confirmation_prompt(
     )
 
 
+def _address_from_contact_message(
+    message: str,
+) -> str | None:
+    explicit = extract_address(message)
+    if explicit:
+        return explicit
+
+    segments = _contact_segments(message)
+    if len(segments) <= 1:
+        return message.strip() or None
+
+    for segment in reversed(segments):
+        if extract_email(segment) or extract_phone(segment):
+            continue
+        lowered = segment.lower()
+        if any(
+            marker in lowered
+            for marker in (
+                "street",
+                "st ",
+                " road",
+                " rd",
+                " avenue",
+                " ave",
+                " lane",
+                " drive",
+                " dr",
+            )
+        ):
+            return segment
+
+    return None
+
+
 def _looks_like_address_update(
     message: str,
     contact: PestControlClientContact,
@@ -440,6 +477,9 @@ def _looks_like_address_update(
         return False
     if contact.address and contact.address.lower() in lowered:
         return True
+    if _address_from_contact_message(message):
+        return True
+
     street_markers = (
         "street",
         "st ",

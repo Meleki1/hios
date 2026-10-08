@@ -10,6 +10,25 @@ _LEAKED_SAFETY_SECTION = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 
+_LEAKED_AUTOMATIC_FOLLOWUP_PATTERNS = (
+    re.compile(
+        r"\s*safety guidance will be appended after your message\.?\s*",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\s*a standard photo request will be appended after your message\.?\s*",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\s*do not ask for photos or write safety guidance yourself\.?\s*",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\s*handled automatically, do not write anything about it yourself\.?\s*",
+        re.IGNORECASE,
+    ),
+)
+
 _LEAKED_PHOTO_REQUEST_PATTERNS = (
     re.compile(
         r"\s*please share (?:the )?image when you(?:'re| are) ready\.?\s*",
@@ -234,13 +253,14 @@ Learning:
             and safety_guidance.guidance
         ):
             lines.append(
-                "- Safety guidance will be appended after your message."
+                "- Separate safety guidance block: yes "
+                "(internal — never quote this line)."
             )
 
         if self._will_append_photo_request(state):
             lines.append(
-                "- A standard photo request will be appended "
-                "after your message."
+                "- Separate photo request block: yes "
+                "(internal — never quote this line)."
             )
 
         if not lines:
@@ -297,6 +317,9 @@ Learning:
         message = self._strip_all_leaked_safety_sections(
             message,
         )
+        message = self._strip_leaked_automatic_followup_notes(
+            message,
+        )
         message = self._strip_leaked_photo_requests(
             message,
         )
@@ -318,6 +341,19 @@ Learning:
         while previous != message:
             previous = message
             message = _LEAKED_SAFETY_SECTION.sub(
+                "",
+                message,
+            )
+
+        return message.strip()
+
+    def _strip_leaked_automatic_followup_notes(
+        self,
+        message: str,
+    ) -> str:
+
+        for pattern in _LEAKED_AUTOMATIC_FOLLOWUP_PATTERNS:
+            message = pattern.sub(
                 "",
                 message,
             )

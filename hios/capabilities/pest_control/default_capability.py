@@ -68,6 +68,12 @@ from hios.capabilities.investigation.contract import (
     InvestigationCapability,
 )
 from hios.capabilities.understanding.models.hypothesis import HypothesisStatus
+from hios.capabilities.safety.contract.result import SafetyGuidanceResult
+from hios.capabilities.pest_control.referral.message_parsing import (
+    is_affirmative,
+    is_negative,
+    is_submit_confirmation,
+)
 
 
 class DefaultPestControlCapability(
@@ -155,12 +161,22 @@ class DefaultPestControlCapability(
             )
         )
 
-        safety_guidance_result = await self._safety.execute(
-            SafetyGuidanceRequest(
-                understanding=understanding_result,
-            ),
-            context,
+        safety_guidance_result = SafetyGuidanceResult(
+            guidance=[],
         )
+        if self._should_generate_safety_guidance(
+            request=request,
+            understanding=understanding_result,
+        ):
+            safety_guidance_result = await self._safety.execute(
+                SafetyGuidanceRequest(
+                    understanding=understanding_result,
+                    previously_communicated_guidance=(
+                        request.previously_communicated_guidance
+                    ),
+                ),
+                context,
+            )
 
         goal_result = await self._goals.execute(
             GoalRequest(
@@ -337,3 +353,37 @@ class DefaultPestControlCapability(
             evidence=evidence,
             source=source,
         )
+
+    @staticmethod
+    def _should_generate_safety_guidance(
+        *,
+        request: PestControlRequest,
+        understanding,
+    ) -> bool:
+
+        message = request.message.strip()
+        if not message:
+            return False
+
+        normalized = " ".join(message.lower().split())
+        if (
+            is_affirmative(message)
+            or is_negative(message)
+            or is_submit_confirmation(message)
+        ):
+            return False
+
+        if request.image_diagnosis is not None:
+            return True
+
+        if not understanding.hypotheses:
+            return False
+
+        has_confirmed = any(
+            hypothesis.status == HypothesisStatus.CONFIRMED
+            for hypothesis in understanding.hypotheses
+        )
+        if has_confirmed:
+            return True
+
+        return len(normalized.split()) >= 3
