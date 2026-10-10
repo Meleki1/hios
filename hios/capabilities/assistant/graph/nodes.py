@@ -313,19 +313,19 @@ def create_nodes(
                     else referral_message
                 )
 
-        if not state.get(
-            "pest_referral_replace_response",
-            False,
-        ):
-            message = _append_safety_guidance(
-                message,
-                state.get("safety_guidance"),
-            )
 
-            message = _append_photo_request(
-                message,
-                photo_request,
-            )
+        message = _append_safety_guidance(
+            message,
+            state.get("safety_guidance"),
+        )
+
+        message = _append_photo_request(
+            message,
+            photo_request,
+        )
+
+
+
 
         domain = state.get("domain")
 

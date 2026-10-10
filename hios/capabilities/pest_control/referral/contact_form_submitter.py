@@ -1,21 +1,8 @@
 from typing import Protocol
-from urllib.parse import urljoin, urlparse
 
 from hios.capabilities.pest_control.referral.models import (
     PestControlContactSubmissionRequest,
     PestControlContactSubmissionResult,
-)
-
-_PLAYWRIGHT_MISSING = (
-    "Automated form submission is unavailable on this server "
-    "(browser automation is not set up). "
-    "Please use the partner contact link to reach them directly."
-)
-
-_PLAYWRIGHT_BROWSERS_MISSING = (
-    "Automated form submission is unavailable because Chromium "
-    "is not installed for browser automation. "
-    "Please use the partner contact link to reach them directly."
 )
 
 
@@ -47,162 +34,117 @@ class PlaywrightPestControlContactFormSubmitter:
     ) -> PestControlContactSubmissionResult:
         try:
             from playwright.async_api import async_playwright
-        except ImportError:
+        except ImportError as exc:
             return PestControlContactSubmissionResult(
                 success=False,
-                detail=_PLAYWRIGHT_MISSING,
+                detail=(
+                    "Playwright is not installed. "
+                    "Add the browser extra: uv sync --extra browser"
+                ),
             )
 
         message_body = (
-            f"Service address: {request.address}\n"
             f"Problem: {request.problem_description}\n"
             f"Urgency: {request.urgency}\n"
             f"Submitted via HIOS on behalf of the homeowner."
         )
 
-        try:
-            async with async_playwright() as playwright:
-                browser = await playwright.chromium.launch(
-                    headless=self._headless,
+        async with async_playwright() as playwright:
+            browser = await playwright.chromium.launch(
+                headless=self._headless,
+            )
+            try:
+                page = await browser.new_page()
+                await page.goto(
+                    request.contact_url,
+                    wait_until="domcontentloaded",
                 )
-                try:
-                    page = await browser.new_page()
-                    await _open_contact_page(page, request.contact_url)
 
-                    await _fill_first_matching(
-                        page,
-                        [
-                            'input[name="your-name"]',
-                            'input[name="name"]',
-                            'input[id*="name" i]',
-                            'input[placeholder*="name" i]',
-                        ],
-                        request.full_name,
-                    )
-                    await _fill_first_matching(
-                        page,
-                        [
-                            'input[type="email"]',
-                            'input[name="your-email"]',
-                            'input[name="email"]',
-                            'input[id*="email" i]',
-                        ],
-                        request.email,
-                    )
-                    await _fill_first_matching(
-                        page,
-                        [
-                            'input[type="tel"]',
-                            'input[name="your-phone"]',
-                            'input[name="phone"]',
-                            'input[id*="phone" i]',
-                            'input[placeholder*="phone" i]',
-                        ],
-                        request.phone,
-                    )
-                    await _fill_first_matching(
-                        page,
-                        [
-                            'input[name="address"]',
-                            'textarea[name="address"]',
-                            'input[id*="address" i]',
-                        ],
-                        request.address,
-                    )
-                    await _fill_first_matching(
-                        page,
-                        [
-                            'textarea[name="your-message"]',
-                            'textarea[name="message"]',
-                            'textarea[id*="message" i]',
-                            'textarea[name="comments"]',
-                            'textarea[placeholder*="message" i]',
-                        ],
-                        message_body,
-                    )
-                    await _fill_first_matching(
-                        page,
-                        [
-                            'select[name*="urgent" i]',
-                            'input[name*="urgent" i]',
-                        ],
-                        request.urgency,
-                    )
+                await _fill_first_matching(
+                    page,
+                    [
+                        'input[name="name"]',
+                        'input[id*="name" i]',
+                        'input[placeholder*="name" i]',
+                    ],
+                    request.full_name,
+                )
+                await _fill_first_matching(
+                    page,
+                    [
+                        'input[type="email"]',
+                        'input[name="email"]',
+                        'input[id*="email" i]',
+                    ],
+                    request.email,
+                )
+                await _fill_first_matching(
+                    page,
+                    [
+                        'input[type="tel"]',
+                        'input[name="phone"]',
+                        'input[id*="phone" i]',
+                    ],
+                    request.phone,
+                )
+                await _fill_first_matching(
+                    page,
+                    [
+                        'input[name="address"]',
+                        'textarea[name="address"]',
+                        'input[id*="address" i]',
+                    ],
+                    request.address,
+                )
+                await _fill_first_matching(
+                    page,
+                    [
+                        'textarea[name="message"]',
+                        'textarea[id*="message" i]',
+                        'textarea[name="comments"]',
+                    ],
+                    message_body,
+                )
+                await _fill_first_matching(
+                    page,
+                    [
+                        'select[name*="urgent" i]',
+                        'input[name*="urgent" i]',
+                    ],
+                    request.urgency,
+                )
 
-                    submitted = await _click_first_matching(
-                        page,
-                        [
-                            'input[type="submit"]',
-                            'button[type="submit"]',
-                            'button:has-text("Submit")',
-                            'button:has-text("Send")',
-                            'button:has-text("Send Message")',
-                            ".wpcf7-submit",
-                        ],
-                    )
+                submitted = await _click_first_matching(
+                    page,
+                    [
+                        'button[type="submit"]',
+                        'input[type="submit"]',
+                        'button:has-text("Submit")',
+                        'button:has-text("Send")',
+                    ],
+                )
 
-                    if not submitted:
-                        return PestControlContactSubmissionResult(
-                            success=False,
-                            detail=(
-                                "Opened the partner contact page but "
-                                "could not submit the form automatically."
-                            ),
-                        )
-
-                    await page.wait_for_timeout(2000)
-
+                if not submitted:
                     return PestControlContactSubmissionResult(
-                        success=True,
+                        success=False,
                         detail=(
-                            "Contact request submitted to the pest "
-                            "control partner website."
+                            "Opened contact page but could not find "
+                            "a submit control. Update selectors for "
+                            "your partner site."
                         ),
                     )
-                finally:
-                    await browser.close()
-        except Exception as exc:
-            error_text = str(exc).lower()
-            if "executable doesn't exist" in error_text or (
-                "browser" in error_text and "install" in error_text
-            ):
+
+                await page.wait_for_timeout(1500)
+
                 return PestControlContactSubmissionResult(
-                    success=False,
-                    detail=_PLAYWRIGHT_BROWSERS_MISSING,
+                    success=True,
+                    detail=(
+                        "Contact request submitted to the pest "
+                        "control partner website."
+                    ),
                 )
-            return PestControlContactSubmissionResult(
-                success=False,
-                detail=(
-                    "Something went wrong while submitting the "
-                    "partner contact form."
-                ),
-            )
-
-
-async def _open_contact_page(page, contact_url: str) -> None:
-    await page.goto(contact_url, wait_until="domcontentloaded")
-
-    has_form = await page.locator("form").count() > 0
-    if has_form:
-        return
-
-    contact_link = page.locator(
-        'a[href*="contact" i]',
-    ).first
-    if await contact_link.count() > 0:
-        await contact_link.click(timeout=3000)
-        await page.wait_for_load_state("domcontentloaded")
-        return
-
-    parsed = urlparse(contact_url)
-    base = f"{parsed.scheme}://{parsed.netloc}"
-    for path in ("/contact/", "/contact-us/", "/contact"):
-        candidate = urljoin(base, path)
-        if candidate.rstrip("/") == contact_url.rstrip("/"):
-            continue
-        await page.goto(candidate, wait_until="domcontentloaded")
-        if await page.locator("form").count() > 0:
-            return
+            finally:
+                await browser.close()
 
 
 async def _fill_first_matching(

@@ -139,23 +139,12 @@ def extract_name(message: str) -> str | None:
                 if stop in value.lower():
                     value = value.split(stop, maxsplit=1)[0].strip()
             return value or None
-
-    for line in message.splitlines():
-        line_stripped = line.strip()
-        if not line_stripped:
-            continue
-        line_norm = _normalize(line_stripped)
-        for label in ("full name:", "name:"):
-            if line_norm.startswith(label):
-                value = line_stripped.split(":", maxsplit=1)[-1].strip()
-                if value and "@" not in value and not _PHONE.search(value):
-                    return value
-
     if "@" not in message and not _PHONE.search(message):
         stripped = message.strip()
         if 2 <= len(stripped.split()) <= 5:
             return stripped
 
+    
     if extract_email(message) or extract_phone(message):
         first_line = message.strip().split("\n", maxsplit=1)[0].strip()
         first_norm = _normalize(first_line)
@@ -199,3 +188,5 @@ def extract_name(message: str) -> str | None:
             return segment
 
     return None
+
+

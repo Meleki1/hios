@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     hios_bootstrap_secret: str
 
     pest_control_contact_url: str = (
-        "https://veritexpestcontrol.com/contact/"
+        "https://veritexpestcontrol.com/"
     )
     # Set to false locally to open a visible Chromium window while filling
     # the partner contact form (replace pest_control_contact_url when ready).

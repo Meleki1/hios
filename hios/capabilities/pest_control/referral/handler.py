@@ -1,4 +1,5 @@
 from __future__ import annotations
+import webbrowser
 from dataclasses import dataclass
 
 from hios.capabilities.assistant.graph.state import HomeAssistantState

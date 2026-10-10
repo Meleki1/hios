@@ -47,7 +47,7 @@ from hios.db.models.timeline_entry import (
 from hios.db.models.home_property_reference import (
     HomePropertyReferenceRecord,
 )
-
+from hios.capabilities.assistant.telegram.postgres.models.telegram_identity import TelegramIdentityRecord
 
 
 config = context.config
