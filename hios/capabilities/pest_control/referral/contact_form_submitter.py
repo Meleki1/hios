@@ -5,6 +5,17 @@ from hios.capabilities.pest_control.referral.models import (
     PestControlContactSubmissionResult,
 )
 
+# Veritex (default partner URL) uses ASP.NET WebForms field ids on the homepage.
+_VERITEX_HOMEOWNER_FORM = {
+    "name": "#ContentPlaceHolder1_txtname",
+    "email": "#ContentPlaceHolder1_txtemail",
+    "phone": "#ContentPlaceHolder1_txtphone",
+    "address": "#ContentPlaceHolder1_txtaddress",
+    "message": "#ContentPlaceHolder1_txtmessage",
+    "urgency": "#ContentPlaceHolder1_txturgency",
+    "submit": "#ContentPlaceHolder1_btnsubmit",
+}
+
 
 class PestControlContactFormSubmitter(Protocol):
     async def submit(
@@ -34,7 +45,7 @@ class PlaywrightPestControlContactFormSubmitter:
     ) -> PestControlContactSubmissionResult:
         try:
             from playwright.async_api import async_playwright
-        except ImportError as exc:
+        except ImportError:
             return PestControlContactSubmissionResult(
                 success=False,
                 detail=(
@@ -57,12 +68,15 @@ class PlaywrightPestControlContactFormSubmitter:
                 page = await browser.new_page()
                 await page.goto(
                     request.contact_url,
-                    wait_until="domcontentloaded",
+                    wait_until="commit",
+                    timeout=60_000,
                 )
+                await _wait_for_contact_form(page)
 
                 await _fill_first_matching(
                     page,
                     [
+                        _VERITEX_HOMEOWNER_FORM["name"],
                         'input[name="name"]',
                         'input[id*="name" i]',
                         'input[placeholder*="name" i]',
@@ -72,6 +86,7 @@ class PlaywrightPestControlContactFormSubmitter:
                 await _fill_first_matching(
                     page,
                     [
+                        _VERITEX_HOMEOWNER_FORM["email"],
                         'input[type="email"]',
                         'input[name="email"]',
                         'input[id*="email" i]',
@@ -81,6 +96,7 @@ class PlaywrightPestControlContactFormSubmitter:
                 await _fill_first_matching(
                     page,
                     [
+                        _VERITEX_HOMEOWNER_FORM["phone"],
                         'input[type="tel"]',
                         'input[name="phone"]',
                         'input[id*="phone" i]',
@@ -90,6 +106,7 @@ class PlaywrightPestControlContactFormSubmitter:
                 await _fill_first_matching(
                     page,
                     [
+                        _VERITEX_HOMEOWNER_FORM["address"],
                         'input[name="address"]',
                         'textarea[name="address"]',
                         'input[id*="address" i]',
@@ -99,6 +116,7 @@ class PlaywrightPestControlContactFormSubmitter:
                 await _fill_first_matching(
                     page,
                     [
+                        _VERITEX_HOMEOWNER_FORM["message"],
                         'textarea[name="message"]',
                         'textarea[id*="message" i]',
                         'textarea[name="comments"]',
@@ -108,6 +126,7 @@ class PlaywrightPestControlContactFormSubmitter:
                 await _fill_first_matching(
                     page,
                     [
+                        _VERITEX_HOMEOWNER_FORM["urgency"],
                         'select[name*="urgent" i]',
                         'input[name*="urgent" i]',
                     ],
@@ -117,6 +136,8 @@ class PlaywrightPestControlContactFormSubmitter:
                 submitted = await _click_first_matching(
                     page,
                     [
+                        _VERITEX_HOMEOWNER_FORM["submit"],
+                        'button:has-text("Submit Request")',
                         'button[type="submit"]',
                         'input[type="submit"]',
                         'button:has-text("Submit")',
@@ -147,6 +168,34 @@ class PlaywrightPestControlContactFormSubmitter:
                 await browser.close()
 
 
+def urgency_select_keywords(urgency: str) -> tuple[str, ...]:
+    """Map HIOS severity labels to likely partner dropdown option text."""
+    normalized = urgency.strip().lower()
+    mapping: dict[str, tuple[str, ...]] = {
+        "high": ("emergency", "very urgent", "same day"),
+        "medium": ("moderate", "2-3"),
+        "low": ("not urgent",),
+        "critical": ("emergency", "same day"),
+        "severe": ("very urgent", "emergency"),
+    }
+    if normalized in mapping:
+        return mapping[normalized]
+    if normalized:
+        return (normalized,)
+    return ("moderate",)
+
+
+async def _wait_for_contact_form(page) -> None:
+    try:
+        await page.wait_for_load_state("domcontentloaded", timeout=15_000)
+    except Exception:
+        pass
+    await page.locator(
+        f"{_VERITEX_HOMEOWNER_FORM['name']}, "
+        'input[name="name"], input[id*="name" i], input[placeholder*="name" i]'
+    ).first.wait_for(state="visible", timeout=30_000)
+
+
 async def _fill_first_matching(
     page,
     selectors: list[str],
@@ -157,10 +206,45 @@ async def _fill_first_matching(
         if await locator.count() == 0:
             continue
         try:
+            tag = await locator.evaluate("el => el.tagName")
+            if tag == "SELECT":
+                await _select_option_matching(locator, value)
+                return
             await locator.fill(value, timeout=2000)
             return
         except Exception:
             continue
+
+
+async def _select_option_matching(locator, urgency: str) -> None:
+    options: list[dict[str, str]] = await locator.locator("option").evaluate_all(
+        """els => els.map(el => ({
+            value: el.value || '',
+            label: (el.textContent || '').trim(),
+        }))"""
+    )
+    candidates = [
+        opt
+        for opt in options
+        if opt["value"] or (opt["label"] and opt["label"] != "How urgent is it?")
+    ]
+    keywords = urgency_select_keywords(urgency)
+    for keyword in keywords:
+        needle = keyword.lower()
+        for opt in candidates:
+            hay = f"{opt['value']} {opt['label']}".lower()
+            if needle in hay:
+                if opt["value"]:
+                    await locator.select_option(value=opt["value"], timeout=2000)
+                else:
+                    await locator.select_option(label=opt["label"], timeout=2000)
+                return
+    if candidates:
+        first = candidates[0]
+        if first["value"]:
+            await locator.select_option(value=first["value"], timeout=2000)
+        else:
+            await locator.select_option(label=first["label"], timeout=2000)
 
 
 async def _click_first_matching(

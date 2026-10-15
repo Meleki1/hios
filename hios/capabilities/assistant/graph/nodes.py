@@ -19,7 +19,9 @@ from hios.capabilities.assistant.models.interaction_routing import InteractionRo
 from langchain_core.messages import HumanMessage, AIMessage
 from hios.capabilities.execution.models.action import ActionType
 from hios.capabilities.pest_control.referral.models import PestReferralPhase
-
+from hios.capabilities.assistant.response.safety_guidance_append import (
+    append_safety_guidance_to_message,
+)
 
 
 def create_nodes(
@@ -137,10 +139,6 @@ def create_nodes(
             and not referral_collecting_details
         ):
 
-            previously = state.get(
-                "communicated_safety_guidance", []
-            )
-            
             result = await hios.execute(
                 PestControlRequest(
                     subject_id=state["subject_id"],
@@ -155,17 +153,10 @@ def create_nodes(
                 )
             )
 
-            new_guidance = (
-                result.safety_guidance.guidance
-                if result.safety_guidance
-                else []
-            )
-
             return {
                 "observation": result.observation,
                 "assessment": result.assessment,
                 "safety_guidance": result.safety_guidance,
-                "communicated_safety_guidance": previously + new_guidance,
                 "goals": result.goals,
                 "plan": result.plans,
                 "decision": result.decision,
@@ -204,49 +195,6 @@ def create_nodes(
             "reflection": None,
             "learning": None,
         }
-
-    def _append_safety_guidance(
-        message: str,
-        safety_guidance,
-    ) -> str:
-
-        """
-        Safety guidance is its own, independent concern -- it is
-        not tied to any particular action or response type. It is
-        composed onto the END of whatever message is otherwise
-        being sent (a maintenance recommendation, a general reply,
-        or a reply that will also carry a photo request appended
-        after it in turn).
-
-        This used to be PREPENDED instead -- guidance shown before
-        any explanation of what was even found, which read as an
-        abrupt wall of bullet points with no context, and forced
-        the response-generation prompt into telling the model to
-        say "please see the safety guidance below" even though the
-        guidance was actually above. Leading with the narrative and
-        appending guidance after it fixes both: the message reads
-        narrative-first, and "below" is now literally accurate if
-        the model ever needs to say it (though the prompt no longer
-        asks it to -- see AssistantResponseGenerationService).
-        """
-
-        if (
-            safety_guidance is None
-            or not safety_guidance.guidance
-        ):
-            return message
-
-        safety = "\n".join(
-            f"- {guidance}"
-            for guidance in safety_guidance.guidance
-        )
-
-        suffix = f"Safety guidance:\n{safety}"
-
-        if not message:
-            return suffix
-
-        return f"{message}\n\n{suffix}"
 
     def _append_photo_request(
         message: str,
@@ -314,18 +262,20 @@ def create_nodes(
                 )
 
 
-        message = _append_safety_guidance(
+        previously_communicated = state.get(
+            "communicated_safety_guidance",
+            [],
+        )
+        message, appended_guidance = append_safety_guidance_to_message(
             message,
             state.get("safety_guidance"),
+            communicated_guidance=previously_communicated,
         )
 
         message = _append_photo_request(
             message,
             photo_request,
         )
-
-
-
 
         domain = state.get("domain")
 
@@ -361,7 +311,7 @@ def create_nodes(
             if capability is None:
                 capability = "pest_control_referral"
 
-        return {
+        build_result: dict = {
             "response": HomeAssistantResponse(
                 message=message,
                 conversation_id=state.get(
@@ -376,6 +326,13 @@ def create_nodes(
                 )
             ],
         }
+
+        if appended_guidance:
+            build_result["communicated_safety_guidance"] = (
+                previously_communicated + appended_guidance
+            )
+
+        return build_result
 
     async def understand_interaction(
         state: HomeAssistantState,

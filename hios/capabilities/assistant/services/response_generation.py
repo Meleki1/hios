@@ -134,44 +134,23 @@ not). This text is sent as-is to a chat client that does
 not render markdown, so any markdown characters would show
 up literally instead of as formatting.
 
-You are not told the exact wording of the safety guidance
-for this interaction — only whether any exists. That is
-deliberate: if present, it is appended to your message
-automatically, verbatim, as its own clearly-separated list
-right after your message, so you cannot repeat content you
-were never shown. Do not mention it, guess its contents, or
-refer to where it appears ("see below," "as noted above,"
-etc.) — it needs no introduction, it will simply follow your
-message as its own section. Just write your part of the
-message as if the guidance weren't there at all.
+Some replies have extra text appended after yours by the
+platform (see append_flags below). You are not shown that
+wording. Never mention append flags, appended blocks, or
+anything that will follow your message. Do not use phrases
+like "see below", "as noted above", or "will be included
+after this message".
 
-This means: never write a heading or label such as "Safety
-guidance", "Safety tips", "Precautions", or similar, and
-never open your reply with a bulleted or numbered list of
-your own safety recommendations — even generic ones drawn
-from your own knowledge of the topic. That entire concern
-belongs exclusively to the automatically-appended section,
-not to you. Your reply should always begin with the
-narrative — what was reported and what it suggests — never
-with anything resembling a safety section.
+When precautions_block is yes: do not write precaution
+lists, do not use headings such as Precautions or Safety
+tips, and do not open with bulleted or numbered precaution
+items — even from general knowledge. Start with plain prose
+about what was reported and what it suggests.
 
-Similarly, do not ask the user to send a photo yourself,
-and do not ask whether they can provide one. When a photo is
-actually needed, a separate, standard request for one is
-appended automatically after your message — asking for it
-yourself would duplicate that request. Just describe what
-was reported and what it suggests; let the automatic request
-(if any) be the only place a photo is asked for.
+When photo_request_block is yes: do not ask for a photo,
+image, or visual evidence yourself. Describe the situation;
+the platform adds the standard photo ask separately.
 """
-
-        safety_guidance = state.get("safety_guidance")
-        safety_guidance_note = (
-            "Yes — handled automatically, do not write "
-            "anything about it yourself."
-            if safety_guidance is not None
-            and safety_guidance.guidance
-            else "No."
-        )
 
         domain = state.get("domain")
         domain_note = (
@@ -202,8 +181,8 @@ Reported observation:
 Assessment:
 {state.get("assessment")}
 
-Is separate safety guidance being sent automatically after
-your message? {safety_guidance_note}
+Append flags (internal — never mention to the user):
+{self._build_append_flags(state)}
 
 Signals:
 {state.get("signals", [])}
@@ -219,9 +198,6 @@ Intent score:
 
 Maintenance recommendations:
 {state.get("maintenance_recommendations", [])}
-
-Automatic follow-ups appended after your message (do not duplicate):
-{self._build_automatic_followups_note(state)}
 
 Outcome:
 {state.get("outcome")}
@@ -240,35 +216,25 @@ Learning:
 
         return self._sanitize_llm_message(message)
 
-    def _build_automatic_followups_note(
+    def _build_append_flags(
         self,
         state: HomeAssistantState,
     ) -> str:
 
-        lines: list[str] = []
-
         safety_guidance = state.get("safety_guidance")
-        if (
+        precautions_block = (
             safety_guidance is not None
-            and safety_guidance.guidance
-        ):
-            lines.append(
-                "- Separate safety guidance block: yes "
-                "(internal — never quote this line)."
-            )
-
-        if self._will_append_photo_request(state):
-            lines.append(
-                "- Separate photo request block: yes "
-                "(internal — never quote this line)."
-            )
-
-        if not lines:
-            return "None."
+            and bool(safety_guidance.guidance)
+        )
+        photo_request_block = self._will_append_photo_request(
+            state,
+        )
 
         return (
-            "\n".join(lines)
-            + "\n(Do not ask for photos or write safety guidance yourself.)"
+            f"precautions_block: "
+            f"{'yes' if precautions_block else 'no'}\n"
+            f"photo_request_block: "
+            f"{'yes' if photo_request_block else 'no'}"
         )
 
     def _will_append_photo_request(
