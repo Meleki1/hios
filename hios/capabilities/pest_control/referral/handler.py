@@ -135,7 +135,7 @@ class PestControlReferralHandler:
                     "behalf, I need your consent to share your name, "
                     "address, email, and phone, plus the problem we "
                     "confirmed and how urgent it is.\n\n"
-                    "Reply yes to agree, or no to decline."
+                    "Tap Yes to agree, or No to decline."
                 ),
                 replace_assistant_response=True,
             )
@@ -397,7 +397,7 @@ def _consent_prompt(
         "their contact form with your details, the confirmed "
         f"problem, and urgency ({referral.urgency}).\n\n"
         "Do you consent to me sharing your name, address, email, "
-        "and phone for that purpose? Reply yes or no."
+        "and phone for that purpose? Tap Yes or No below."
     )
 
 

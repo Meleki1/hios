@@ -26,14 +26,41 @@ class TelegramClient:
         *,
         chat_id: int,
         text: str,
+        reply_markup: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+
+        payload: dict[str, Any] = {
+            "chat_id": chat_id,
+            "text": text,
+        }
+        if reply_markup is not None:
+            payload["reply_markup"] = reply_markup
 
         response = await self._http_client.post(
             f"{self._base_url}/sendMessage",
-            json={
-                "chat_id": chat_id,
-                "text": text,
-            },
+            json=payload,
+        )
+
+        response.raise_for_status()
+
+        return response.json()
+
+    async def answer_callback_query(
+        self,
+        *,
+        callback_query_id: str,
+        text: str | None = None,
+    ) -> dict[str, Any]:
+
+        payload: dict[str, Any] = {
+            "callback_query_id": callback_query_id,
+        }
+        if text is not None:
+            payload["text"] = text
+
+        response = await self._http_client.post(
+            f"{self._base_url}/answerCallbackQuery",
+            json=payload,
         )
 
         response.raise_for_status()

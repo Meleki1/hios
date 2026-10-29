@@ -33,6 +33,10 @@ from hios.capabilities.execution.models.execution import Execution
 from hios.capabilities.decision.models.decision import Decision
 from hios.capabilities.assistant.response.assistant_action_response_builder import AssistantActionResponseBuilder
 from hios.capabilities.image_diagnosis.models.image_diagnosis import ImageDiagnosis
+from hios.capabilities.pest_control.referral.models import (
+    PestControlReferralState,
+    PestReferralPhase,
+)
 
 class FakeResponseGenerationService:
 
@@ -900,6 +904,54 @@ async def test_build_response_returns_image_request_for_image_action():
         response.metadata["action_type"]
         == ActionType.IMAGE_REQUEST.value
     )
+
+
+@pytest.mark.asyncio
+async def test_build_response_adds_yes_no_buttons_for_consent():
+    nodes = create_nodes(
+        context_assembler=FakeHomeContextAssembler(),
+        router=FakeInteractionRouter(),
+        hios=FakeHIOS(),
+        intelligence_graph=FakeIntelligenceGraph(),
+        action_response_builder=AssistantActionResponseBuilder(),
+        response_generation_service=(
+            FakeResponseGenerationService()
+        ),
+        interaction_understanding_service=(
+            FakeInteractionUnderstandingService()
+        ),
+    )
+
+    result = await nodes["build_response"](
+        HomeAssistantState(
+            subject_id="household-1",
+            home_id="home-1",
+            message="yes please help",
+            conversation_id="conversation-1",
+            domain=AssistantDomain.PEST_CONTROL,
+            pest_referral=PestControlReferralState(
+                phase=PestReferralPhase.AWAITING_CONSENT,
+                confirmed_problem="ants in kitchen",
+                urgency="medium",
+            ),
+            pest_referral_message=(
+                "Do you consent? Tap Yes or No below."
+            ),
+            pest_referral_replace_response=False,
+        )
+    )
+
+    response = result["response"]
+
+    assert response.metadata["pest_referral_phase"] == (
+        PestReferralPhase.AWAITING_CONSENT.value
+    )
+    assert response.metadata["requires_user_input"] is True
+    assert response.metadata["reply_options"] == [
+        {"id": "yes", "label": "Yes"},
+        {"id": "no", "label": "No"},
+    ]
+
 
 """@pytest.mark.asyncio
 async def test_build_response_keeps_existing_pest_control_response():

@@ -308,6 +308,11 @@ def create_nodes(
                 "pest_referral_phase": pest_referral.phase.value,
                 "requires_user_input": True,
             }
+            if pest_referral.phase == PestReferralPhase.AWAITING_CONSENT:
+                metadata["reply_options"] = [
+                    {"id": "yes", "label": "Yes"},
+                    {"id": "no", "label": "No"},
+                ]
             if capability is None:
                 capability = "pest_control_referral"
 
